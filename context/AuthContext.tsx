@@ -67,10 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = useCallback(async () => {
-    const res = await AuthService.signOut();
-    setSession(null);
-    setUser(null);
-    return res;
+    try {
+      await AuthService.signOut();
+    } catch (err) {
+      console.warn('Error during signOut:', err);
+    } finally {
+      setSession(null);
+      setUser(null);
+    }
+    return { error: null };
   }, []);
 
   return (

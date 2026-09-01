@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useFitness } from '../../context/FitnessContext';
@@ -23,6 +24,7 @@ import { Spacing, Typography, BorderRadius } from '../../constants/theme';
 import { FitnessGoal, ActivityLevel, Gender } from '../../types';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { signOut } = useAuth();
   const {
     profile,
@@ -253,7 +255,14 @@ export default function ProfileScreen() {
             onPress={() => {
               Alert.alert('Log Out', 'Are you sure you want to log out of APEXFIT?', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: () => signOut() },
+                {
+                  text: 'Log Out',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await signOut();
+                    router.replace('/(auth)/login');
+                  },
+                },
               ]);
             }}
             style={styles.settingRow}
