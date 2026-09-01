@@ -6,7 +6,7 @@ import {
   StyleProp,
   TouchableOpacity,
 } from 'react-native';
-import { Palette } from '../../constants/colors';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import { BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 interface CardProps {
@@ -24,19 +24,39 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   disabled = false,
 }) => {
-  const getVariantStyles = () => {
+  const { colors, isDark } = useThemeColors();
+
+  const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'elevated':
-        return [styles.elevatedCard, Shadows.card];
+        return {
+          backgroundColor: colors.bgCardElevated,
+          borderColor: colors.borderDefault,
+          ...Shadows.card,
+        };
       case 'highlight':
-        return [styles.highlightCard, Shadows.glowPrimary];
+        return {
+          backgroundColor: colors.bgCardElevated,
+          borderColor: colors.borderHighlight,
+          ...Shadows.glowPrimary,
+        };
       case 'glass':
-        return styles.glassCard;
+        return {
+          backgroundColor: isDark ? 'rgba(17, 21, 32, 0.85)' : 'rgba(255, 255, 255, 0.9)',
+          borderColor: colors.borderSubtle,
+        };
       case 'danger':
-        return styles.dangerCard;
+        return {
+          backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.05)',
+          borderColor: 'rgba(239, 68, 68, 0.25)',
+        };
       case 'default':
       default:
-        return [styles.defaultCard, Shadows.subtle];
+        return {
+          backgroundColor: colors.bgCard,
+          borderColor: colors.borderSubtle,
+          ...Shadows.subtle,
+        };
     }
   };
 
@@ -65,25 +85,5 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-  },
-  defaultCard: {
-    backgroundColor: Palette.bgCard,
-    borderColor: Palette.borderSubtle,
-  },
-  elevatedCard: {
-    backgroundColor: Palette.bgCardElevated,
-    borderColor: Palette.borderDefault,
-  },
-  highlightCard: {
-    backgroundColor: Palette.bgCardElevated,
-    borderColor: 'rgba(0, 245, 155, 0.35)',
-  },
-  glassCard: {
-    backgroundColor: 'rgba(17, 21, 32, 0.85)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  dangerCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    borderColor: 'rgba(239, 68, 68, 0.25)',
   },
 });

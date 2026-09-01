@@ -1,4 +1,4 @@
-export const Palette = {
+export const DarkPalette = {
   // Brand / Signature Accents (Apple Fitness / Whoop Inspired)
   primary: '#00F59B',       // Luminous Electric Jade
   primaryDark: '#059669',
@@ -23,15 +23,15 @@ export const Palette = {
   blue: '#38BDF8',          // Clean Hydration Blue
   blueMuted: 'rgba(56, 189, 248, 0.12)',
   
-  // Backgrounds & Refined Surfaces (Dark-First, Clean Matte Obsidian)
-  bgApp: '#090B10',          // Deepest background
-  bgCard: '#111520',         // Surface level 1 (subtle & elegant)
-  bgCardElevated: '#171D2C', // Surface level 2 (interactive / active)
+  // Backgrounds & Surfaces (Obsidian Matte)
+  bgApp: '#090B10',
+  bgCard: '#111520',
+  bgCardElevated: '#171D2C',
   bgCardHover: '#1B2335',
-  bgInput: '#131826',        // Form & input backgrounds
-  bgModal: '#0E121B',        // Bottom sheets & modal sheets
+  bgInput: '#131826',
+  bgModal: '#0E121B',
   
-  // Clean Hairline Borders & Dividers (Subtle, never heavy)
+  // Borders & Dividers
   borderSubtle: 'rgba(255, 255, 255, 0.06)',
   borderDefault: 'rgba(255, 255, 255, 0.10)',
   borderHighlight: 'rgba(0, 245, 155, 0.35)',
@@ -58,6 +58,69 @@ export const Palette = {
   water: '#38BDF8',
   calories: '#FF6B00',
 };
+
+export const LightPalette = {
+  // Brand / Signature Accents (High Contrast on Light)
+  primary: '#059669',       // Deep Emerald / Jade
+  primaryDark: '#047857',
+  primaryMuted: 'rgba(5, 150, 105, 0.10)',
+  primaryGlow: 'rgba(5, 150, 105, 0.20)',
+  
+  cyan: '#0284C7',          // Crisp Sky Blue
+  cyanMuted: 'rgba(2, 132, 199, 0.10)',
+  
+  orange: '#EA580C',        // Deep Orange
+  orangeMuted: 'rgba(234, 88, 12, 0.10)',
+  
+  amber: '#D97706',         // Deep Amber Gold
+  amberMuted: 'rgba(217, 119, 6, 0.10)',
+  
+  purple: '#7C3AED',        // Royal Violet
+  purpleMuted: 'rgba(124, 58, 237, 0.10)',
+  
+  rose: '#E11D48',
+  roseMuted: 'rgba(225, 29, 72, 0.10)',
+
+  blue: '#0284C7',
+  blueMuted: 'rgba(2, 132, 199, 0.10)',
+  
+  // Backgrounds & Surfaces (Apple Health Clean Snow)
+  bgApp: '#F8FAFC',
+  bgCard: '#FFFFFF',
+  bgCardElevated: '#F1F5F9',
+  bgCardHover: '#E2E8F0',
+  bgInput: '#F1F5F9',
+  bgModal: '#FFFFFF',
+  
+  // Borders & Dividers
+  borderSubtle: 'rgba(0, 0, 0, 0.06)',
+  borderDefault: 'rgba(0, 0, 0, 0.12)',
+  borderHighlight: 'rgba(5, 150, 105, 0.35)',
+  borderActive: '#059669',
+  
+  // Typography Hierarchy
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textMuted: '#64748B',
+  textDisabled: '#94A3B8',
+  textInverse: '#FFFFFF',
+  
+  // Status Colors
+  success: '#10B981',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  info: '#0284C7',
+  
+  // Macros
+  protein: '#059669',
+  carbs: '#0284C7',
+  fat: '#D97706',
+  fiber: '#7C3AED',
+  water: '#0284C7',
+  calories: '#EA580C',
+};
+
+export const Palette = DarkPalette;
 
 export const Gradients = {
   primary: ['#00F59B', '#00D2FF'] as const,

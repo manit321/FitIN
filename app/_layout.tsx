@@ -5,12 +5,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { FitnessProvider, useFitness } from '../context/FitnessContext';
 import { Palette } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 import { RestTimerModal } from '../components/workout/RestTimerModal';
 import { LoadingState } from '../components/ui/LoadingState';
 
 function RootNavigation() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { isHydrated, profile, restTimer, adjustRestTimer, stopRestTimer } = useFitness();
+  const { colors, isDark } = useThemeColors();
   const segments = useSegments();
   const router = useRouter();
 
@@ -49,12 +51,15 @@ function RootNavigation() {
   }
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={Palette.bgApp} />
+    <View style={[styles.rootContainer, { backgroundColor: colors.bgApp }]}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.bgApp}
+      />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: Palette.bgApp },
+          contentStyle: { backgroundColor: colors.bgApp },
           animation: 'slide_from_right',
         }}
       >
