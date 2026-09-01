@@ -1,26 +1,28 @@
 {
   "expo": {
-    "name": "FitIN",
-    "slug": "FitIN",
+    "name": "APEXFIT",
+    "slug": "apexfit",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitin",
-    "userInterfaceStyle": "automatic",
+    "scheme": "apexfit",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#080B11"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.apexfit.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#080B11"
       },
+      "package": "com.apexfit.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

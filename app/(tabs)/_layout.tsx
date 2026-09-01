@@ -1,59 +1,120 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Tabs } from 'expo-router';
+import { View, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Palette } from '../../constants/colors';
+import { Typography, Spacing } from '../../constants/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        headerShown: false,
+        tabBarActiveTintColor: Palette.primary,
+        tabBarInactiveTintColor: Palette.textMuted,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarItemStyle: styles.tabBarItem,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Ionicons
+                name={focused ? 'grid' : 'grid-outline'}
+                size={22}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="workouts"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: 'Workouts',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Ionicons
+                name={focused ? 'barbell' : 'barbell-outline'}
+                size={24}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="nutrition"
+        options={{
+          title: 'Nutrition',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Ionicons
+                name={focused ? 'nutrition' : 'nutrition-outline'}
+                size={22}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: 'Progress',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Ionicons
+                name={focused ? 'trending-up' : 'trending-up-outline'}
+                size={22}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrapper : undefined}>
+              <Ionicons
+                name={focused ? 'person' : 'person-outline'}
+                size={22}
+                color={color}
+              />
+            </View>
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: Palette.bgCard,
+    borderTopWidth: 1,
+    borderTopColor: Palette.borderSubtle,
+    height: Platform.OS === 'ios' ? 88 : 68,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+    elevation: 8,
+  },
+  tabBarItem: {
+    paddingVertical: 2,
+  },
+  tabBarLabel: {
+    fontSize: Typography.fontSizes.micro,
+    fontWeight: Typography.fontWeights.semibold,
+    marginTop: 2,
+  },
+  activeIconWrapper: {
+    transform: [{ scale: 1.08 }],
+  },
+});

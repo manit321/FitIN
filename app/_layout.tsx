@@ -1,59 +1,103 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, StatusBar } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { FitnessProvider, useFitness } from '../context/FitnessContext';
+import { Palette } from '../constants/colors';
+import { RestTimerModal } from '../components/workout/RestTimerModal';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+function RootNavigation() {
+  const { isHydrated, profile, restTimer, adjustRestTimer, stopRestTimer } = useFitness();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (!isHydrated) return;
+
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!profile.isOnboarded && !inOnboarding) {
+      router.replace('/onboarding');
     }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  }, [isHydrated, profile.isOnboarded, segments, router]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <View style={styles.rootContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={Palette.bgApp} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Palette.bgApp },
+          animation: 'slide_from_right',
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="workout/[id]"
+          options={{ presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="workout/active"
+          options={{
+            presentation: 'fullScreenModal',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="workout/summary"
+          options={{
+            presentation: 'fullScreenModal',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="workout/create"
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="exercise/[id]"
+          options={{ presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="nutrition/add-food"
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="weight/log"
+          options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="onboarding/index"
+          options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+        />
       </Stack>
-    </ThemeProvider>
+
+      {/* Global Floating Rest Timer if active */}
+      <RestTimerModal
+        isActive={restTimer.isActive}
+        targetSeconds={restTimer.targetSeconds}
+        remainingSeconds={restTimer.remainingSeconds}
+        exerciseName={restTimer.exerciseName}
+        onAdjust={adjustRestTimer}
+        onSkip={stopRestTimer}
+      />
+    </View>
   );
 }
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <FitnessProvider>
+        <RootNavigation />
+      </FitnessProvider>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: Palette.bgApp,
+  },
+});
