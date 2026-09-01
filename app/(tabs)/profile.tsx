@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
 import { useFitness } from '../../context/FitnessContext';
 import { Palette } from '../../constants/colors';
 import { AppHeader } from '../../components/ui/AppHeader';
@@ -22,6 +23,7 @@ import { Spacing, Typography, BorderRadius } from '../../constants/theme';
 import { FitnessGoal, ActivityLevel, Gender } from '../../types';
 
 export default function ProfileScreen() {
+  const { signOut } = useAuth();
   const {
     profile,
     settings,
@@ -240,6 +242,26 @@ export default function ProfileScreen() {
               <Ionicons name="refresh-outline" size={20} color={Palette.danger} />
               <Text style={[styles.settingTitle, { color: Palette.danger }]}>
                 Reset Sample Data
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert('Log Out', 'Are you sure you want to log out of APEXFIT?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Log Out', style: 'destructive', onPress: () => signOut() },
+              ]);
+            }}
+            style={styles.settingRow}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="log-out-outline" size={20} color={Palette.orange} />
+              <Text style={[styles.settingTitle, { color: Palette.orange }]}>
+                Log Out
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
