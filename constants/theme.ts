@@ -1,16 +1,6 @@
-import { Platform } from 'react-native';
-import { Palette } from './colors';
-
-export const Spacing = {
-  xxs: 2,
-  xs: 4,
-  sm: 8,
-  md: 14,
-  lg: 18,
-  xl: 24,
-  xxl: 32,
-  xxxl: 44,
-};
+import { Palette, Gradients } from './colors';
+import { Spacing } from './spacing';
+import { Typography } from './typography';
 
 export const BorderRadius = {
   xs: 6,
@@ -19,35 +9,7 @@ export const BorderRadius = {
   lg: 18,
   xl: 24,
   full: 9999,
-};
-
-export const Typography = {
-  fontFamilies: {
-    regular: Platform.select({ ios: 'System', default: 'sans-serif' }),
-    medium: Platform.select({ ios: 'System', default: 'sans-serif-medium' }),
-    bold: Platform.select({ ios: 'System', default: 'sans-serif' }),
-  },
-  fontSizes: {
-    micro: 10,
-    caption: 12,
-    subhead: 14,
-    body: 16,
-    headline: 17,
-    title3: 20,
-    title2: 24,
-    title1: 28,
-    display: 34,
-    giant: 44,
-  },
-  fontWeights: {
-    regular: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
-    heavy: '800' as const,
-    black: '900' as const,
-  },
-};
+} as const;
 
 export const Shadows = {
   subtle: {
@@ -78,4 +40,16 @@ export const Shadows = {
     shadowRadius: 12,
     elevation: 6,
   },
+} as const;
+
+export const Theme = {
+  colors: Palette,
+  gradients: Gradients,
+  spacing: Spacing,
+  typography: Typography,
+  borderRadius: BorderRadius,
+  shadows: Shadows,
 };
+
+export { Palette, Gradients, Spacing, Typography };
+export default Theme;

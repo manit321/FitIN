@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  AccessibilityRole,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Palette } from '../../constants/colors';
@@ -25,6 +26,9 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   hapticFeedback?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: AccessibilityRole;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -40,6 +44,9 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
   hapticFeedback = true,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole = 'button',
 }) => {
   const handlePress = () => {
     if (disabled || loading) return;
@@ -81,6 +88,14 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={handlePress}
       disabled={disabled || loading}
       style={getContainerStyle()}
+      accessible={true}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel || title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled || loading,
+        busy: loading,
+      }}
     >
       {loading ? (
         <ActivityIndicator
@@ -117,11 +132,11 @@ const styles = StyleSheet.create({
   fullWidth: {
     width: '100%',
   },
-  // Sizes
+  // Sizes (44pt minimum on touch target for iOS)
   size_sm: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
-    minHeight: 36,
+    minHeight: 38,
   },
   size_md: {
     paddingHorizontal: Spacing.lg,
