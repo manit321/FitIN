@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useFitness } from '../../context/FitnessContext';
 import { Palette } from '../../constants/colors';
 import { Card } from '../../components/ui/Card';
@@ -18,8 +20,9 @@ import { InputField } from '../../components/ui/InputField';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
-import { Spacing, Typography, BorderRadius } from '../../constants/theme';
+import { Spacing, Typography, BorderRadius, Shadows } from '../../constants/theme';
 import { MealCategory, FoodItem } from '../../types';
+import { FoodService } from '../../services/foodService';
 
 export default function AddFoodScreen() {
   const router = useRouter();
@@ -32,10 +35,15 @@ export default function AddFoodScreen() {
   const [targetDate] = useState<string>(
     params.date || new Date().toISOString().split('T')[0]
   );
-  const [activeTab, setActiveTab] = useState<'catalog' | 'custom'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'global' | 'custom'>('catalog');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [servings, setServings] = useState('1');
+
+  // Global search & barcode states
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const [globalResults, setGlobalResults] = useState<FoodItem[]>([]);
 
   // Custom food inputs
   const [customName, setCustomName] = useState('');
@@ -54,15 +62,40 @@ export default function AddFoodScreen() {
     { label: 'Snacks', value: 'snacks' },
   ];
 
-  const filteredFoods = foods.filter((f) =>
+  const filteredLocalFoods = foods.filter((f) =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     f.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (f.brand && f.brand.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const handleSearchGlobal = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearchingGlobal(true);
+    const results = await FoodService.searchOpenFoodFacts(searchQuery);
+    setGlobalResults(results);
+    setIsSearchingGlobal(false);
+  };
+
+  const handleBarcodeLookup = async () => {
+    if (!barcodeInput.trim()) return;
+    setIsSearchingGlobal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const product = await FoodService.lookupBarcode(barcodeInput);
+    setIsSearchingGlobal(false);
+
+    if (product) {
+      setSelectedFood(product);
+      setServings('1');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Alert.alert('Barcode Not Found', 'No product found for this barcode in Open Food Facts.');
+    }
+  };
+
   const handleLogSelected = async () => {
     if (!selectedFood) return;
     const servNum = parseFloat(servings) || 1;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await addLoggedFood(selectedFood, selectedMeal, servNum, targetDate);
     router.back();
   };
@@ -92,12 +125,20 @@ export default function AddFoodScreen() {
       fiberG: fib,
     });
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await addLoggedFood(newFood, selectedMeal, 1, targetDate);
     router.back();
   };
 
+  const servNum = parseFloat(servings) || 1;
+  const previewCals = selectedFood ? Math.round(selectedFood.calories * servNum) : 0;
+  const previewP = selectedFood ? Math.round(selectedFood.proteinG * servNum * 10) / 10 : 0;
+  const previewC = selectedFood ? Math.round(selectedFood.carbsG * servNum * 10) / 10 : 0;
+  const previewF = selectedFood ? Math.round(selectedFood.fatG * servNum * 10) / 10 : 0;
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -110,142 +151,245 @@ export default function AddFoodScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      {/* MEAL CATEGORY SELECTOR */}
-      <View style={styles.mealSelectorContainer}>
-        <SegmentedControl
-          options={mealOptions}
-          selectedValue={selectedMeal}
-          onSelect={(val) => setSelectedMeal(val)}
-        />
-      </View>
-
-      {/* CATALOG VS CUSTOM TAB */}
-      <View style={styles.typeSwitcher}>
-        <TouchableOpacity
-          onPress={() => setActiveTab('catalog')}
-          style={[styles.typeBtn, activeTab === 'catalog' && styles.typeBtnActive]}
-        >
-          <Text
-            style={[
-              styles.typeBtnText,
-              activeTab === 'catalog' && styles.typeBtnTextActive,
-            ]}
-          >
-            Search Food Database
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab('custom')}
-          style={[styles.typeBtn, activeTab === 'custom' && styles.typeBtnActive]}
-        >
-          <Text
-            style={[
-              styles.typeBtnText,
-              activeTab === 'custom' && styles.typeBtnTextActive,
-            ]}
-          >
-            Create Custom Food
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* TAB 1: SEARCH DATABASE */}
+        {/* Meal Category Picker */}
+        <View style={styles.mealSelectorRow}>
+          {mealOptions.map((m) => (
+            <TouchableOpacity
+              key={m.value}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setSelectedMeal(m.value);
+              }}
+              style={[
+                styles.mealOptionBtn,
+                selectedMeal === m.value && styles.mealOptionActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.mealOptionText,
+                  selectedMeal === m.value && styles.mealOptionTextActive,
+                ]}
+              >
+                {m.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Segmented Control */}
+        <SegmentedControl<'catalog' | 'global' | 'custom'>
+          options={[
+            { label: 'Verified Database', value: 'catalog' },
+            { label: 'Global / Barcode', value: 'global' },
+            { label: '+ Custom Food', value: 'custom' },
+          ]}
+          selectedValue={activeTab}
+          onSelect={(val) => setActiveTab(val)}
+          style={styles.segmentedControl}
+        />
+
+        {/* TAB 1: VERIFIED LOCAL CATALOG */}
         {activeTab === 'catalog' && (
           <View>
-            <View style={styles.searchRow}>
+            <View style={styles.searchBar}>
               <Ionicons name="search" size={18} color={Palette.textMuted} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search chicken, paneer, oats, whey..."
-                placeholderTextColor={Palette.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                placeholder="Search chicken, oats, whey, paneer..."
+                placeholderTextColor={Palette.textMuted}
               />
+              {searchQuery ? (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={Palette.textMuted} />
+                </TouchableOpacity>
+              ) : null}
             </View>
 
-            {/* FOOD ITEMS LIST */}
-            {filteredFoods.map((food) => {
-              const isSelected = selectedFood?.id === food.id;
-              return (
-                <TouchableOpacity
-                  key={food.id}
-                  onPress={() => setSelectedFood(food)}
-                  style={[
-                    styles.foodCard,
-                    isSelected && styles.foodCardSelected,
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.foodInfo}>
-                    <Text style={styles.foodName}>{food.name}</Text>
-                    <Text style={styles.foodBrand}>
-                      {food.brand ? `${food.brand} • ` : ''}
-                      {food.servingSize}
-                    </Text>
-                  </View>
-                  <View style={styles.foodMacros}>
-                    <Text style={styles.foodCals}>{food.calories} kcal</Text>
-                    <Text style={styles.macroPills}>
-                      <Text style={{ color: Palette.protein }}>P:{food.proteinG}g </Text>
-                      <Text style={{ color: Palette.carbs }}>C:{food.carbsG}g </Text>
-                      <Text style={{ color: Palette.fat }}>F:{food.fatG}g</Text>
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            <View style={styles.foodList}>
+              {filteredLocalFoods.map((item) => {
+                const isSelected = selectedFood?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedFood(item);
+                    }}
+                    style={[
+                      styles.foodItemCard,
+                      isSelected && styles.foodItemCardSelected,
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.foodItemLeft}>
+                      <Text style={styles.foodItemName}>{item.name}</Text>
+                      <Text style={styles.foodItemBrand}>
+                        {item.brand ? `${item.brand} • ` : ''}
+                        {item.servingSize}
+                      </Text>
+                      <Text style={styles.foodItemMacros}>
+                        {item.proteinG}g P • {item.carbsG}g C • {item.fatG}g F
+                      </Text>
+                    </View>
+                    <View style={styles.foodItemRight}>
+                      <Text style={styles.foodItemCals}>{item.calories}</Text>
+                      <Text style={styles.foodItemKcalLabel}>kcal</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         )}
 
-        {/* TAB 2: CREATE CUSTOM FOOD */}
-        {activeTab === 'custom' && (
+        {/* TAB 2: GLOBAL OPEN FOOD FACTS & BARCODE */}
+        {activeTab === 'global' && (
           <View>
+            {/* Barcode Search Box */}
+            <Card variant="default" style={styles.barcodeCard}>
+              <View style={styles.barcodeHeader}>
+                <Ionicons name="barcode-outline" size={20} color={Palette.primary} />
+                <Text style={styles.barcodeTitle}>Enter Product Barcode</Text>
+              </View>
+              <View style={styles.barcodeInputRow}>
+                <TextInput
+                  style={styles.barcodeInput}
+                  value={barcodeInput}
+                  onChangeText={setBarcodeInput}
+                  placeholder="e.g. 737628064502"
+                  placeholderTextColor={Palette.textMuted}
+                  keyboardType="number-pad"
+                />
+                <TouchableOpacity
+                  onPress={handleBarcodeLookup}
+                  style={styles.barcodeLookupBtn}
+                  disabled={isSearchingGlobal || !barcodeInput.trim()}
+                >
+                  <Ionicons name="arrow-forward" size={18} color={Palette.textInverse} />
+                </TouchableOpacity>
+              </View>
+            </Card>
+
+            {/* Global Search Bar */}
+            <View style={[styles.searchBar, { marginTop: Spacing.sm }]}>
+              <Ionicons name="globe-outline" size={18} color={Palette.cyan} />
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search worldwide Open Food Facts..."
+                placeholderTextColor={Palette.textMuted}
+                onSubmitEditing={handleSearchGlobal}
+                returnKeyType="search"
+              />
+              <TouchableOpacity
+                onPress={handleSearchGlobal}
+                style={styles.searchSubmitBtn}
+              >
+                <Text style={styles.searchSubmitText}>Search</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isSearchingGlobal && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Palette.primary} />
+                <Text style={styles.loadingText}>Querying Open Food Facts database...</Text>
+              </View>
+            )}
+
+            <View style={styles.foodList}>
+              {globalResults.map((item) => {
+                const isSelected = selectedFood?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedFood(item);
+                    }}
+                    style={[
+                      styles.foodItemCard,
+                      isSelected && styles.foodItemCardSelected,
+                    ]}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.foodItemLeft}>
+                      <Text style={styles.foodItemName}>{item.name}</Text>
+                      <Text style={styles.foodItemBrand}>
+                        {item.brand ? `${item.brand} • ` : ''}
+                        {item.servingSize}
+                      </Text>
+                      <Text style={styles.foodItemMacros}>
+                        {item.proteinG}g P • {item.carbsG}g C • {item.fatG}g F
+                      </Text>
+                    </View>
+                    <View style={styles.foodItemRight}>
+                      <Text style={styles.foodItemCals}>{item.calories}</Text>
+                      <Text style={styles.foodItemKcalLabel}>kcal</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* TAB 3: CUSTOM FOOD CREATOR */}
+        {activeTab === 'custom' && (
+          <View style={styles.customForm}>
             <InputField
-              label="Food Name"
+              label="Food / Meal Name *"
               value={customName}
               onChangeText={setCustomName}
-              placeholder="e.g. Grandma's Protein Smoothie"
+              placeholder="e.g. Homemade Protein Pancakes"
             />
             <InputField
-              label="Brand / Source (Optional)"
+              label="Brand / Restaurant (Optional)"
               value={customBrand}
               onChangeText={setCustomBrand}
-              placeholder="e.g. Homemade"
+              placeholder="e.g. FitMeals"
             />
             <InputField
-              label="Serving Size"
+              label="Serving Size (e.g. 1 bowl, 200g)"
               value={customServing}
               onChangeText={setCustomServing}
-              placeholder="e.g. 1 bowl (200g)"
+              placeholder="100g"
             />
 
-            <View style={styles.customMacrosGrid}>
+            <View style={styles.macroInputsGrid}>
               <InputField
-                label="Calories (kcal)"
+                label="Calories (kcal) *"
                 value={customCalories}
                 onChangeText={setCustomCalories}
                 keyboardType="number-pad"
+                placeholder="250"
                 containerStyle={{ flex: 1 }}
               />
               <InputField
-                label="Protein (g)"
+                label="Protein (g) *"
                 value={customProtein}
                 onChangeText={setCustomProtein}
                 keyboardType="decimal-pad"
+                placeholder="25"
                 containerStyle={{ flex: 1 }}
               />
             </View>
 
-            <View style={styles.customMacrosGrid}>
+            <View style={styles.macroInputsGrid}>
               <InputField
                 label="Carbs (g)"
                 value={customCarbs}
                 onChangeText={setCustomCarbs}
                 keyboardType="decimal-pad"
+                placeholder="30"
                 containerStyle={{ flex: 1 }}
               />
               <InputField
@@ -253,19 +397,21 @@ export default function AddFoodScreen() {
                 value={customFat}
                 onChangeText={setCustomFat}
                 keyboardType="decimal-pad"
+                placeholder="5"
+                containerStyle={{ flex: 1 }}
+              />
+              <InputField
+                label="Fiber (g)"
+                value={customFiber}
+                onChangeText={setCustomFiber}
+                keyboardType="decimal-pad"
+                placeholder="4"
                 containerStyle={{ flex: 1 }}
               />
             </View>
 
-            <InputField
-              label="Fiber (g) (Optional)"
-              value={customFiber}
-              onChangeText={setCustomFiber}
-              keyboardType="decimal-pad"
-            />
-
             <Button
-              title="Save & Log Custom Food"
+              title="Save & Log Food"
               onPress={handleSaveCustomFood}
               variant="primary"
               size="lg"
@@ -274,39 +420,58 @@ export default function AddFoodScreen() {
             />
           </View>
         )}
-      </ScrollView>
 
-      {/* BOTTOM LOGGING BAR (WHEN FOOD SELECTED IN CATALOG) */}
-      {activeTab === 'catalog' && selectedFood && (
-        <View style={styles.bottomBar}>
-          <View style={styles.servingsRow}>
-            <Text style={styles.selectedFoodLabel} numberOfLines={1}>
-              {selectedFood.name}
-            </Text>
-            <View style={styles.servingsInputWrapper}>
-              <Text style={styles.servingsLabel}>Servings:</Text>
+        {/* SELECTED FOOD PREVIEW & LOG BUTTON */}
+        {selectedFood && activeTab !== 'custom' && (
+          <Card variant="highlight" style={styles.previewCard}>
+            <Text style={styles.previewTitle}>Selected: {selectedFood.name}</Text>
+            <View style={styles.servingAdjustRow}>
+              <Text style={styles.servingLabel}>Servings multiplier:</Text>
               <TextInput
-                style={styles.servingsInput}
-                keyboardType="decimal-pad"
+                style={styles.servingInput}
                 value={servings}
                 onChangeText={setServings}
+                keyboardType="decimal-pad"
                 selectTextOnFocus
               />
             </View>
-          </View>
 
-          <Button
-            title={`Log Food (${Math.round(
-              selectedFood.calories * (parseFloat(servings) || 1)
-            )} kcal)`}
-            onPress={handleLogSelected}
-            variant="primary"
-            size="lg"
-            fullWidth
-            icon={<Ionicons name="restaurant" size={18} color={Palette.textInverse} />}
-          />
-        </View>
-      )}
+            <View style={styles.previewMacroRow}>
+              <View style={styles.previewMacroItem}>
+                <Text style={styles.previewMacroVal}>{previewCals}</Text>
+                <Text style={styles.previewMacroLbl}>kcal</Text>
+              </View>
+              <View style={styles.previewMacroItem}>
+                <Text style={[styles.previewMacroVal, { color: Palette.protein }]}>
+                  {previewP}g
+                </Text>
+                <Text style={styles.previewMacroLbl}>Protein</Text>
+              </View>
+              <View style={styles.previewMacroItem}>
+                <Text style={[styles.previewMacroVal, { color: Palette.carbs }]}>
+                  {previewC}g
+                </Text>
+                <Text style={styles.previewMacroLbl}>Carbs</Text>
+              </View>
+              <View style={styles.previewMacroItem}>
+                <Text style={[styles.previewMacroVal, { color: Palette.fat }]}>
+                  {previewF}g
+                </Text>
+                <Text style={styles.previewMacroLbl}>Fat</Text>
+              </View>
+            </View>
+
+            <Button
+              title={`Log to ${selectedMeal.toUpperCase()} 🚀`}
+              onPress={handleLogSelected}
+              variant="primary"
+              size="lg"
+              fullWidth
+              style={{ marginTop: Spacing.md }}
+            />
+          </Card>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -321,160 +486,238 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Palette.borderSubtle,
+    borderColor: Palette.borderSubtle,
   },
   cancelBtn: {
     padding: Spacing.xs,
   },
   cancelText: {
     color: Palette.textMuted,
-    fontSize: Typography.fontSizes.body,
+    fontSize: Typography.fontSizes.subhead,
   },
   headerTitle: {
     color: Palette.textPrimary,
     fontSize: Typography.fontSizes.body,
     fontWeight: Typography.fontWeights.bold,
   },
-  mealSelectorContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  typeSwitcher: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  typeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  typeBtnActive: {
-    borderBottomColor: Palette.primary,
-  },
-  typeBtnText: {
-    color: Palette.textMuted,
-    fontSize: Typography.fontSizes.subhead,
-    fontWeight: Typography.fontWeights.semibold,
-  },
-  typeBtnTextActive: {
-    color: Palette.textPrimary,
-    fontWeight: Typography.fontWeights.bold,
-  },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 120,
+    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.xxxl,
   },
-  searchRow: {
+  mealSelectorRow: {
+    flexDirection: 'row',
+    backgroundColor: Palette.bgCard,
+    borderRadius: BorderRadius.full,
+    padding: 3,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Palette.borderSubtle,
+  },
+  mealOptionBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: BorderRadius.full,
+  },
+  mealOptionActive: {
+    backgroundColor: Palette.primary,
+  },
+  mealOptionText: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.semibold,
+  },
+  mealOptionTextActive: {
+    color: Palette.textInverse,
+    fontWeight: Typography.fontWeights.heavy,
+  },
+  segmentedControl: {
+    marginBottom: Spacing.md,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Palette.bgInput,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
-    height: 44,
-    marginBottom: Spacing.md,
+    height: 46,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
   },
   searchInput: {
     flex: 1,
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
+    fontSize: Typography.fontSizes.subhead,
   },
-  foodCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    backgroundColor: Palette.bgCard,
-    borderRadius: BorderRadius.md,
+  searchSubmitBtn: {
+    backgroundColor: Palette.cyan,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.sm,
+  },
+  searchSubmitText: {
+    color: Palette.textInverse,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  barcodeCard: {
     marginBottom: Spacing.xs,
+    padding: Spacing.md,
+  },
+  barcodeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  barcodeTitle: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.semibold,
+  },
+  barcodeInputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  barcodeInput: {
+    flex: 1,
+    backgroundColor: Palette.bgInput,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    height: 44,
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
   },
-  foodCardSelected: {
+  barcodeLookupBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: Palette.primary,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  loadingText: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.caption,
+  },
+  foodList: {
+    gap: Spacing.xs,
+  },
+  foodItemCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Palette.bgCard,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Palette.borderSubtle,
+  },
+  foodItemCardSelected: {
     borderColor: Palette.primary,
     backgroundColor: Palette.bgCardElevated,
   },
-  foodInfo: {
-    flex: 1.5,
+  foodItemLeft: {
+    flex: 1,
   },
-  foodName: {
+  foodItemName: {
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.subhead,
+    fontSize: Typography.fontSizes.body,
     fontWeight: Typography.fontWeights.bold,
   },
-  foodBrand: {
+  foodItemBrand: {
     color: Palette.textMuted,
     fontSize: Typography.fontSizes.caption,
     marginTop: 2,
   },
-  foodMacros: {
+  foodItemMacros: {
+    color: Palette.primary,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.medium,
+    marginTop: 4,
+  },
+  foodItemRight: {
     alignItems: 'flex-end',
   },
-  foodCals: {
+  foodItemCals: {
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.subhead,
+    fontSize: Typography.fontSizes.title3,
     fontWeight: Typography.fontWeights.heavy,
   },
-  macroPills: {
-    fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
-    fontWeight: Typography.fontWeights.semibold,
+  foodItemKcalLabel: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.micro,
   },
-  customMacrosGrid: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Palette.bgCard,
-    borderTopWidth: 1,
-    borderTopColor: Palette.borderSubtle,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  servingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  selectedFoodLabel: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.bold,
-    flex: 1,
-  },
-  servingsInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  customForm: {
     gap: Spacing.xs,
   },
-  servingsLabel: {
+  macroInputsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  previewCard: {
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+  },
+  previewTitle: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  servingAdjustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: Spacing.sm,
+  },
+  servingLabel: {
     color: Palette.textSecondary,
     fontSize: Typography.fontSizes.subhead,
   },
-  servingsInput: {
+  servingInput: {
+    width: 60,
     backgroundColor: Palette.bgInput,
     borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.sm,
-    height: 36,
-    width: 60,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.bold,
     textAlign: 'center',
+    fontWeight: Typography.fontWeights.bold,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
+  },
+  previewMacroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderColor: Palette.borderSubtle,
+    paddingTop: Spacing.sm,
+  },
+  previewMacroItem: {
+    alignItems: 'center',
+  },
+  previewMacroVal: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  previewMacroLbl: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.micro,
+    marginTop: 2,
   },
 });
