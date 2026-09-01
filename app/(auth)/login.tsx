@@ -54,7 +54,11 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (res.error) {
-      setError(res.error.message || 'Failed to sign in. Please verify your credentials.');
+      if (res.error.message.toLowerCase().includes('invalid login credentials')) {
+        setError('Invalid email or password. If you just created this account, please check your email inbox for the Supabase confirmation link (or disable "Confirm email" in your Supabase Auth settings).');
+      } else {
+        setError(res.error.message || 'Failed to sign in. Please verify your credentials.');
+      }
     } else {
       router.replace('/(tabs)');
     }

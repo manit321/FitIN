@@ -27,6 +27,7 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const validate = (): boolean => {
     if (!fullName.trim()) {
@@ -64,9 +65,12 @@ export default function SignUpScreen() {
 
     if (res.error) {
       setError(res.error.message || 'Failed to create account. Please try again.');
-    } else {
-      // New user goes directly to onboarding
+    } else if (res.session) {
+      // Session immediately active -> go to onboarding
       router.replace('/onboarding');
+    } else {
+      // Supabase email confirmation is enabled on this project
+      setNeedsVerification(true);
     }
   };
 
@@ -92,100 +96,133 @@ export default function SignUpScreen() {
             <Ionicons name="chevron-back" size={24} color={Palette.textPrimary} />
           </TouchableOpacity>
 
-          {/* Header */}
-          <View style={styles.brandContainer}>
-            <View style={[styles.brandBadge, Shadows.glowPrimary]}>
-              <Ionicons name="person-add" size={32} color={Palette.primary} />
-            </View>
-            <Text style={styles.brandTitle}>Create Account</Text>
-            <Text style={styles.brandSubtitle}>Start your APEXFIT fitness journey</Text>
-          </View>
-
-          {/* Form Container */}
-          <View style={styles.formContainer}>
-            {error && (
-              <View style={styles.errorBanner} accessibilityRole="alert">
-                <Ionicons name="alert-circle" size={18} color={Palette.danger} />
-                <Text style={styles.errorBannerText}>{error}</Text>
+          {needsVerification ? (
+            /* Email Verification Confirmation State */
+            <View style={styles.verificationCard}>
+              <View style={[styles.brandBadge, Shadows.glowPrimary]}>
+                <Ionicons name="mail-open" size={38} color={Palette.primary} />
               </View>
-            )}
+              <Text style={styles.verificationTitle}>Verify Your Email</Text>
+              <Text style={styles.verificationSub}>
+                We've sent a verification email to{' '}
+                <Text style={{ color: Palette.textPrimary, fontWeight: '700' }}>
+                  {email}
+                </Text>
+                . Please click the confirmation link in the email, then return to log in.
+              </Text>
 
-            <InputField
-              label="Full Name"
-              value={fullName}
-              onChangeText={(text) => {
-                setFullName(text);
-                if (error) setError(null);
-              }}
-              placeholder="Alex Mercer"
-              autoCapitalize="words"
-              leftIcon="person-outline"
-            />
+              <View style={styles.tipBox}>
+                <Ionicons name="information-circle-outline" size={18} color={Palette.cyan} />
+                <Text style={styles.tipText}>
+                  Tip: To bypass email verification during development, turn off "Confirm email" in your Supabase Auth Settings.
+                </Text>
+              </View>
 
-            <InputField
-              label="Email Address"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (error) setError(null);
-              }}
-              placeholder="alex@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              leftIcon="mail-outline"
-            />
+              <Button
+                title="Go to Log In"
+                onPress={() => router.replace('/(auth)/login')}
+                variant="primary"
+                size="lg"
+                fullWidth
+                style={{ marginTop: Spacing.lg }}
+              />
+            </View>
+          ) : (
+            /* Registration Form */
+            <View>
+              <View style={styles.brandContainer}>
+                <View style={[styles.brandBadge, Shadows.glowPrimary]}>
+                  <Ionicons name="person-add" size={32} color={Palette.primary} />
+                </View>
+                <Text style={styles.brandTitle}>Create Account</Text>
+                <Text style={styles.brandSubtitle}>Start your APEXFIT fitness journey</Text>
+              </View>
 
-            <InputField
-              label="Password (min. 6 characters)"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (error) setError(null);
-              }}
-              placeholder="••••••••"
-              isPassword={true}
-              autoCapitalize="none"
-              leftIcon="lock-closed-outline"
-            />
+              <View style={styles.formContainer}>
+                {error && (
+                  <View style={styles.errorBanner} accessibilityRole="alert">
+                    <Ionicons name="alert-circle" size={18} color={Palette.danger} />
+                    <Text style={styles.errorBannerText}>{error}</Text>
+                  </View>
+                )}
 
-            <InputField
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (error) setError(null);
-              }}
-              placeholder="••••••••"
-              isPassword={true}
-              autoCapitalize="none"
-              leftIcon="shield-checkmark-outline"
-            />
+                <InputField
+                  label="Full Name"
+                  value={fullName}
+                  onChangeText={(text) => {
+                    setFullName(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Alex Mercer"
+                  autoCapitalize="words"
+                  leftIcon="person-outline"
+                />
 
-            <Button
-              title="Create Account"
-              onPress={handleSignUp}
-              variant="primary"
-              size="lg"
-              loading={loading}
-              fullWidth
-              style={{ marginTop: Spacing.sm }}
-            />
-          </View>
+                <InputField
+                  label="Email Address"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="alex@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  leftIcon="mail-outline"
+                />
 
-          {/* Footer */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already have an account?</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/login')}
-              style={styles.loginLink}
-              accessible={true}
-              accessibilityRole="link"
-              accessibilityLabel="Log in to your account"
-            >
-              <Text style={styles.loginLinkText}>Log In</Text>
-            </TouchableOpacity>
-          </View>
+                <InputField
+                  label="Password (min. 6 characters)"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="••••••••"
+                  isPassword={true}
+                  autoCapitalize="none"
+                  leftIcon="lock-closed-outline"
+                />
+
+                <InputField
+                  label="Confirm Password"
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    if (error) setError(null);
+                  }}
+                  placeholder="••••••••"
+                  isPassword={true}
+                  autoCapitalize="none"
+                  leftIcon="shield-checkmark-outline"
+                />
+
+                <Button
+                  title="Create Account"
+                  onPress={handleSignUp}
+                  variant="primary"
+                  size="lg"
+                  loading={loading}
+                  fullWidth
+                  style={{ marginTop: Spacing.sm }}
+                />
+              </View>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.footerText}>Already have an account?</Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/(auth)/login')}
+                  style={styles.loginLink}
+                  accessible={true}
+                  accessibilityRole="link"
+                  accessibilityLabel="Log in to your account"
+                >
+                  <Text style={styles.loginLinkText}>Log In</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -280,5 +317,42 @@ const styles = StyleSheet.create({
     color: Palette.primary,
     fontSize: Typography.fontSizes.subhead,
     fontWeight: Typography.fontWeights.bold,
+  },
+  verificationCard: {
+    alignItems: 'center',
+    backgroundColor: Palette.bgCard,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Palette.borderSubtle,
+  },
+  verificationTitle: {
+    color: Palette.textPrimary,
+    fontSize: 24,
+    fontWeight: Typography.fontWeights.bold,
+    marginBottom: Spacing.xs,
+  },
+  verificationSub: {
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.subhead,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  tipBox: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 210, 255, 0.08)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 210, 255, 0.25)',
+    gap: Spacing.sm,
+    width: '100%',
+  },
+  tipText: {
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.caption,
+    flex: 1,
+    lineHeight: 18,
   },
 });
