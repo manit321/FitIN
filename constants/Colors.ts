@@ -1,136 +1,79 @@
-export const DarkPalette = {
-  // Brand / Signature Accents (Apple Fitness / Whoop Inspired)
-  primary: '#00F59B',       // Luminous Electric Jade
-  primaryDark: '#059669',
-  primaryMuted: 'rgba(0, 245, 155, 0.12)',
-  primaryGlow: 'rgba(0, 245, 155, 0.22)',
-  
-  cyan: '#00D2FF',          // Cyber Cyan
-  cyanMuted: 'rgba(0, 210, 255, 0.12)',
-  
-  orange: '#FF6B00',        // Energy Orange (Calories / Burn)
-  orangeMuted: 'rgba(255, 107, 0, 0.12)',
-  
-  amber: '#F59E0B',         // Gold PRs & Trophies
-  amberMuted: 'rgba(245, 158, 11, 0.12)',
-  
-  purple: '#8B5CF6',        // Accent Violet
-  purpleMuted: 'rgba(139, 92, 246, 0.12)',
-  
-  rose: '#F43F5E',          // High Intensity / Heart Rate
-  roseMuted: 'rgba(244, 63, 94, 0.12)',
+/**
+ * APEXFIT Design System - White & Light Blue Signature Palette
+ * 
+ * Clean, minimal, athletic aesthetic inspired by modern fitness trackers.
+ * Dominant: Crisp Snow White, Frosted Pearl, and Electric Sky Blue.
+ */
 
-  blue: '#38BDF8',          // Clean Hydration Blue
-  blueMuted: 'rgba(56, 189, 248, 0.12)',
+export const Palette = {
+  // Brand / Signature Accents (Electric Sky Blue & Cyan)
+  primary: '#0284C7',          // Electric Sky Blue (Primary Action)
+  primaryDark: '#0369A1',      // Deep Ocean Blue
+  primaryLight: '#38BDF8',     // Luminous Cyan Blue
+  primaryMuted: 'rgba(2, 132, 199, 0.08)',
+  primaryGlow: 'rgba(2, 132, 199, 0.18)',
   
-  // Backgrounds & Surfaces (Obsidian Matte)
-  bgApp: '#090B10',
-  bgCard: '#111520',
-  bgCardElevated: '#171D2C',
-  bgCardHover: '#1B2335',
-  bgInput: '#131826',
-  bgModal: '#0E121B',
+  cyan: '#0EA5E9',             // Bright Cyan
+  cyanMuted: 'rgba(14, 165, 233, 0.10)',
   
-  // Borders & Dividers
-  borderSubtle: 'rgba(255, 255, 255, 0.06)',
-  borderDefault: 'rgba(255, 255, 255, 0.10)',
-  borderHighlight: 'rgba(0, 245, 155, 0.35)',
-  borderActive: '#00F59B',
+  blue: '#2563EB',             // Royal Athletic Blue
+  blueMuted: 'rgba(37, 99, 235, 0.08)',
   
-  // Typography Hierarchy
-  textPrimary: '#FFFFFF',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  textDisabled: '#475569',
-  textInverse: '#090B10',
+  orange: '#F97316',           // Energy Amber-Orange (Calories / Burn)
+  orangeMuted: 'rgba(249, 115, 22, 0.10)',
   
-  // Status Colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#38BDF8',
-  
-  // Macros
-  protein: '#00F59B',
-  carbs: '#00D2FF',
-  fat: '#F59E0B',
-  fiber: '#A78BFA',
-  water: '#38BDF8',
-  calories: '#FF6B00',
-};
-
-export const LightPalette = {
-  // Brand / Signature Accents (High Contrast on Light)
-  primary: '#059669',       // Deep Emerald / Jade
-  primaryDark: '#047857',
-  primaryMuted: 'rgba(5, 150, 105, 0.10)',
-  primaryGlow: 'rgba(5, 150, 105, 0.20)',
-  
-  cyan: '#0284C7',          // Crisp Sky Blue
-  cyanMuted: 'rgba(2, 132, 199, 0.10)',
-  
-  orange: '#EA580C',        // Deep Orange
-  orangeMuted: 'rgba(234, 88, 12, 0.10)',
-  
-  amber: '#D97706',         // Deep Amber Gold
+  amber: '#D97706',            // Gold PRs & Trophies
   amberMuted: 'rgba(217, 119, 6, 0.10)',
   
-  purple: '#7C3AED',        // Royal Violet
-  purpleMuted: 'rgba(124, 58, 237, 0.10)',
+  purple: '#7C3AED',           // Violet Accent
+  purpleMuted: 'rgba(124, 58, 237, 0.08)',
   
-  rose: '#E11D48',
-  roseMuted: 'rgba(225, 29, 72, 0.10)',
+  rose: '#E11D48',             // Heart Rate / Intensity
+  roseMuted: 'rgba(225, 29, 72, 0.08)',
 
-  blue: '#0284C7',
-  blueMuted: 'rgba(2, 132, 199, 0.10)',
+  // Clean White Backgrounds & Surfaces
+  bgApp: '#F8FAFC',            // Crisp Snow App Canvas
+  bgCard: '#FFFFFF',           // Pure White Surface Level 1
+  bgCardElevated: '#F0F9FF',   // Subtle Sky Frosted Surface Level 2
+  bgCardHover: '#E0F2FE',      // Light Blue Hover
+  bgInput: '#F1F5F9',          // Input Background
+  bgModal: '#FFFFFF',          // Modal Background
   
-  // Backgrounds & Surfaces (Apple Health Clean Snow)
-  bgApp: '#F8FAFC',
-  bgCard: '#FFFFFF',
-  bgCardElevated: '#F1F5F9',
-  bgCardHover: '#E2E8F0',
-  bgInput: '#F1F5F9',
-  bgModal: '#FFFFFF',
+  // Clean Hairline Borders
+  borderSubtle: '#E2E8F0',     // Subtle Hairline Divider
+  borderDefault: '#CBD5E1',    // Standard Card Border
+  borderHighlight: 'rgba(2, 132, 199, 0.35)', // Active / Focused Border
+  borderActive: '#0284C7',     // Selected State Border
   
-  // Borders & Dividers
-  borderSubtle: 'rgba(0, 0, 0, 0.06)',
-  borderDefault: 'rgba(0, 0, 0, 0.12)',
-  borderHighlight: 'rgba(5, 150, 105, 0.35)',
-  borderActive: '#059669',
-  
-  // Typography Hierarchy
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#64748B',
-  textDisabled: '#94A3B8',
-  textInverse: '#FFFFFF',
+  // Typography Hierarchy (High Contrast on White)
+  textPrimary: '#0F172A',      // Deep Obsidian Slate (Headers & Key Numbers)
+  textSecondary: '#475569',    // Slate Gray (Labels & Subtitles)
+  textMuted: '#64748B',        // Muted Gray (Secondary Hints)
+  textDisabled: '#94A3B8',     // Disabled Text
+  textInverse: '#FFFFFF',      // White Text on Colored Buttons
   
   // Status Colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  info: '#0284C7',
+  success: '#10B981',          // Emerald Success
+  warning: '#F59E0B',          // Warning Amber
+  danger: '#EF4444',           // Danger Red
+  info: '#0284C7',             // Information Blue
   
-  // Macros
-  protein: '#059669',
-  carbs: '#0284C7',
-  fat: '#D97706',
-  fiber: '#7C3AED',
-  water: '#0284C7',
-  calories: '#EA580C',
+  // Nutrition & Energy Macros
+  protein: '#0284C7',          // Electric Blue (Protein)
+  carbs: '#06B6D4',            // Teal Cyan (Carbohydrates)
+  fat: '#F59E0B',              // Amber Gold (Fats)
+  fiber: '#8B5CF6',            // Violet (Fiber)
+  water: '#0284C7',            // Clean Sky Blue (Hydration)
+  calories: '#EA580C',         // Energy Orange (Calories)
 };
 
-export const Palette = DarkPalette;
-
 export const Gradients = {
-  primary: ['#00F59B', '#00D2FF'] as const,
-  energy: ['#FF6B00', '#F59E0B'] as const,
-  power: ['#8B5CF6', '#38BDF8'] as const,
-  card: ['#121622', '#0D1017'] as const,
-  cardElevated: ['#181E2E', '#111522'] as const,
-  fire: ['#F43F5E', '#FF6B00'] as const,
-  cyanBlue: ['#00D2FF', '#38BDF8'] as const,
-  darkOverlay: ['rgba(9,11,16,0)', 'rgba(9,11,16,0.95)'] as const,
+  primary: ['#0284C7', '#38BDF8'] as const,
+  energy: ['#EA580C', '#F59E0B'] as const,
+  power: ['#2563EB', '#0284C7'] as const,
+  card: ['#FFFFFF', '#F0F9FF'] as const,
+  cardElevated: ['#F0F9FF', '#E0F2FE'] as const,
+  cyanBlue: ['#0284C7', '#38BDF8'] as const,
 };
 
 export default Palette;

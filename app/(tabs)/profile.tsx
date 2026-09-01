@@ -227,41 +227,6 @@ export default function ProfileScreen() {
 
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
-              <Ionicons
-                name={settings.theme === 'light' ? 'sunny-outline' : settings.theme === 'dark' ? 'moon-outline' : 'phone-portrait-outline'}
-                size={20}
-                color={Palette.primary}
-              />
-              <Text style={styles.settingTitle}>Theme Mode</Text>
-            </View>
-            <View style={styles.themeToggleGroup}>
-              {(['dark', 'light', 'system'] as const).map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  onPress={() => updateSettings({ theme: t })}
-                  style={[
-                    styles.themeToggleBtn,
-                    (settings.theme || 'dark') === t && styles.themeToggleBtnActive,
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.themeToggleBtnText,
-                      (settings.theme || 'dark') === t && styles.themeToggleBtnTextActive,
-                    ]}
-                  >
-                    {t === 'dark' ? '🌙 Dark' : t === 'light' ? '☀️ Light' : '⚙️ Auto'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
               <Ionicons name="scale-outline" size={20} color={Palette.purple} />
               <Text style={styles.settingTitle}>Weight Unit</Text>
             </View>

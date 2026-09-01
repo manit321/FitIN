@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 import { Palette } from '../../constants/colors';
-import { Typography, Spacing } from '../../constants/theme';
+import { Typography } from '../../constants/theme';
 
 interface MacroRingsProps {
   calories: { current: number; target: number };
@@ -16,7 +16,6 @@ export const MacroRings: React.FC<MacroRingsProps> = ({
   calories,
   protein,
   carbs,
-  fat,
   size = 180,
 }) => {
   const strokeWidth = 10;
@@ -52,7 +51,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({
             cx={center}
             cy={center}
             r={rCal}
-            stroke="rgba(255, 107, 0, 0.12)"
+            stroke="rgba(234, 88, 12, 0.12)"
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -74,7 +73,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({
             cx={center}
             cy={center}
             r={rProt}
-            stroke="rgba(0, 245, 155, 0.12)"
+            stroke="rgba(2, 132, 199, 0.12)"
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -96,7 +95,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({
             cx={center}
             cy={center}
             r={rCarb}
-            stroke="rgba(0, 210, 255, 0.12)"
+            stroke="rgba(6, 182, 212, 0.12)"
             strokeWidth={strokeWidth}
             fill="none"
           />

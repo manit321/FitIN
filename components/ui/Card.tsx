@@ -6,7 +6,7 @@ import {
   StyleProp,
   TouchableOpacity,
 } from 'react-native';
-import { useThemeColors } from '../../hooks/useThemeColors';
+import { Palette } from '../../constants/colors';
 import { BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 interface CardProps {
@@ -24,37 +24,36 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   disabled = false,
 }) => {
-  const { colors, isDark } = useThemeColors();
-
   const getVariantStyles = (): ViewStyle => {
     switch (variant) {
       case 'elevated':
         return {
-          backgroundColor: colors.bgCardElevated,
-          borderColor: colors.borderDefault,
-          ...Shadows.card,
+          backgroundColor: Palette.bgCard,
+          borderColor: Palette.borderSubtle,
+          ...Shadows.elevated,
         };
       case 'highlight':
         return {
-          backgroundColor: colors.bgCardElevated,
-          borderColor: colors.borderHighlight,
+          backgroundColor: Palette.bgCardElevated,
+          borderColor: 'rgba(2, 132, 199, 0.35)',
           ...Shadows.glowPrimary,
         };
       case 'glass':
         return {
-          backgroundColor: isDark ? 'rgba(17, 21, 32, 0.85)' : 'rgba(255, 255, 255, 0.9)',
-          borderColor: colors.borderSubtle,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: Palette.borderSubtle,
+          ...Shadows.subtle,
         };
       case 'danger':
         return {
-          backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.05)',
-          borderColor: 'rgba(239, 68, 68, 0.25)',
+          backgroundColor: 'rgba(239, 68, 68, 0.05)',
+          borderColor: 'rgba(239, 68, 68, 0.20)',
         };
       case 'default':
       default:
         return {
-          backgroundColor: colors.bgCard,
-          borderColor: colors.borderSubtle,
+          backgroundColor: Palette.bgCard,
+          borderColor: Palette.borderSubtle,
           ...Shadows.subtle,
         };
     }
