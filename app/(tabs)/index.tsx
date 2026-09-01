@@ -208,6 +208,15 @@ export default function HomeScreen() {
             <Ionicons name="scale" size={15} color={Palette.purple} />
             <Text style={styles.quickChipText}>Weight</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickChip, { borderColor: 'rgba(0, 245, 155, 0.3)', backgroundColor: 'rgba(0, 245, 155, 0.08)' }]}
+            onPress={() => router.push('/ai/coach')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="sparkles" size={15} color={Palette.primary} />
+            <Text style={[styles.quickChipText, { color: Palette.primary }]}>AI Coach</Text>
+          </TouchableOpacity>
         </View>
 
         {/* TODAY'S WORKOUT SPOTLIGHT */}

@@ -98,6 +98,10 @@ function RootNavigation() {
           name="onboarding/index"
           options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="ai/coach"
+          options={{ presentation: 'card' }}
+        />
       </Stack>
 
       {/* Global Floating Rest Timer */}
