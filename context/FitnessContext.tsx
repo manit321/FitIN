@@ -139,7 +139,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
   const [restTimer, setRestTimer] = useState<RestTimerState>({
     isActive: false,
     targetSeconds: 90,
-    remainingSeconds: 90,
+    remainingSeconds: 0,
     exerciseName: undefined,
   });
 

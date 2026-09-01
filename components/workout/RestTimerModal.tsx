@@ -28,7 +28,7 @@ export const RestTimerModal: React.FC<RestTimerModalProps> = ({
   onAdjust,
   onSkip,
 }) => {
-  if (!isActive && remainingSeconds <= 0) return null;
+  if (!isActive || remainingSeconds <= 0) return null;
 
   const progress = targetSeconds > 0 ? remainingSeconds / targetSeconds : 0;
 
