@@ -12,230 +12,220 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFitness } from '../../context/FitnessContext';
 import { Palette } from '../../constants/colors';
 import { AppHeader } from '../../components/ui/AppHeader';
-import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Card } from '../../components/ui/Card';
-import { LineChart, DataPoint } from '../../components/charts/LineChart';
-import { BarChart, BarDataPoint } from '../../components/charts/BarChart';
-import { ActivityHeatmap } from '../../components/charts/ActivityHeatmap';
 import { Badge } from '../../components/ui/Badge';
+import { LineChart, DataPoint } from '../../components/charts/LineChart';
+import { ActivityHeatmap } from '../../components/charts/ActivityHeatmap';
 import { Spacing, Typography, BorderRadius } from '../../constants/theme';
-import { formatWeight, formatDate } from '../../utils/formatters';
 import { TimeFilter } from '../../types';
+import { formatWeight, formatDate } from '../../utils/formatters';
 
 export default function ProgressScreen() {
   const router = useRouter();
-  const {
-    profile,
-    settings,
-    weightEntries,
-    completedWorkouts,
-    exercises,
-    loggedMeals,
-  } = useFitness();
+  const { profile, settings, weightEntries, completedWorkouts, exercises } = useFitness();
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('30D');
 
-  const timeFilterOptions: { label: string; value: TimeFilter }[] = [
-    { label: '7D', value: '7D' },
-    { label: '30D', value: '30D' },
-    { label: '3M', value: '3M' },
-    { label: '6M', value: '6M' },
-    { label: '1Y', value: '1Y' },
-  ];
+  const timeFilterOptions: TimeFilter[] = ['7D', '30D', '3M', '6M', '1Y'];
 
-  // Weight Trend Data Points
-  const weightDataPoints: DataPoint[] = weightEntries.map((w) => ({
-    label: formatDate(w.date),
+  // Filter weight entries
+  const now = new Date();
+  const getFilterDays = (filter: TimeFilter): number => {
+    switch (filter) {
+      case '7D':
+        return 7;
+      case '30D':
+        return 30;
+      case '3M':
+        return 90;
+      case '6M':
+        return 180;
+      case '1Y':
+        return 365;
+    }
+  };
+
+  const cutoffDate = new Date(now.getTime() - getFilterDays(timeFilter) * 24 * 60 * 60 * 1000);
+  const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+  const filteredWeightEntries = weightEntries
+    .filter((w) => w.date >= cutoffStr)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const weightChartData: DataPoint[] = filteredWeightEntries.map((w) => ({
+    label: w.date.substring(5), // MM-DD
     value: w.weightKg,
-    date: w.date,
   }));
 
-  // Volume Trend Data Points
-  const volumeDataPoints: DataPoint[] = completedWorkouts
-    .slice()
-    .reverse()
-    .map((w) => ({
-      label: formatDate(w.date),
-      value: w.totalVolumeKg,
-      date: w.date,
-    }));
+  // Volume chart data
+  const filteredWorkouts = completedWorkouts
+    .filter((w) => w.date >= cutoffStr)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  // Calorie consistency
-  const calorieBars: BarDataPoint[] = loggedMeals
-    .slice(0, 7)
-    .reverse()
-    .map((m) => ({
-      label: formatDate(m.date),
-      value: m.calories,
-    }));
+  const volumeChartData: DataPoint[] = filteredWorkouts.map((w) => ({
+    label: w.date.substring(5),
+    value: w.totalVolumeKg,
+  }));
 
-  // Personal Records List
-  const prExercises = exercises.filter((e) => e.personalRecord !== undefined);
-
-  // Overall Stats
-  const totalVolumeLifetime = completedWorkouts.reduce(
-    (acc, w) => acc + w.totalVolumeKg,
-    0
-  );
-  const totalWorkoutsCount = completedWorkouts.length;
-  const totalCaloriesBurned = completedWorkouts.reduce(
-    (acc, w) => acc + w.caloriesBurned,
-    0
-  );
+  // Exercises with PRs
+  const exercisesWithPR = exercises
+    .filter((e) => e.personalRecord && e.personalRecord.calculated1RM > 0)
+    .sort((a, b) => ((b.personalRecord?.calculated1RM || 0) - (a.personalRecord?.calculated1RM || 0)));
 
   const startWeight = profile.startWeightKg;
   const currentWeight = profile.weightKg;
-  const goalWeight = profile.targetWeightKg;
-  const weightChange = Math.round((currentWeight - startWeight) * 10) / 10;
+  const targetWeight = profile.targetWeightKg;
+  const totalChange = Math.round((currentWeight - startWeight) * 10) / 10;
+  const toGoal = Math.round((currentWeight - targetWeight) * 10) / 10;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <AppHeader
-        subtitle="ANALYTICS & STATS"
-        title="Progress"
-        rightAction={
-          <TouchableOpacity
-            onPress={() => router.push('/weight/log')}
-            style={styles.logWeightHeaderBtn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={18} color={Palette.textInverse} />
-            <Text style={styles.logWeightHeaderBtnText}>Log Weight</Text>
-          </TouchableOpacity>
-        }
-      />
-
-      {/* Time Range Filter */}
-      <View style={styles.filterContainer}>
-        <SegmentedControl
-          options={timeFilterOptions}
-          selectedValue={timeFilter}
-          onSelect={(val) => setTimeFilter(val)}
-        />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* LIFETIME STATS SUMMARY CARDS */}
-        <View style={styles.statsGrid}>
-          <Card variant="elevated" style={styles.miniStatCard}>
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(0, 245, 155, 0.15)' }]}>
-              <Ionicons name="barbell" size={20} color={Palette.primary} />
-            </View>
-            <Text style={styles.miniStatValue}>{totalWorkoutsCount}</Text>
-            <Text style={styles.miniStatLabel}>Workouts</Text>
-          </Card>
+        {/* Header */}
+        <AppHeader
+          title="Analytics"
+          subtitle="PROGRESS & BODY METRICS"
+          rightAction={
+            <TouchableOpacity
+              onPress={() => router.push('/weight/log')}
+              style={styles.logWeightBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="scale" size={15} color={Palette.textInverse} />
+              <Text style={styles.logWeightBtnText}>Weigh-in</Text>
+            </TouchableOpacity>
+          }
+        />
 
-          <Card variant="elevated" style={styles.miniStatCard}>
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(0, 210, 255, 0.15)' }]}>
-              <Ionicons name="trophy" size={20} color={Palette.cyan} />
-            </View>
-            <Text style={styles.miniStatValue}>
-              {Math.round(totalVolumeLifetime / 1000)}k
-            </Text>
-            <Text style={styles.miniStatLabel}>Vol (kg)</Text>
-          </Card>
-
-          <Card variant="elevated" style={styles.miniStatCard}>
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(255, 107, 0, 0.15)' }]}>
-              <Ionicons name="flame" size={20} color={Palette.orange} />
-            </View>
-            <Text style={styles.miniStatValue}>
-              {Math.round(totalCaloriesBurned / 1000)}k
-            </Text>
-            <Text style={styles.miniStatLabel}>Calories</Text>
-          </Card>
+        {/* Apple-Style Time Filter Pills */}
+        <View style={styles.timeFilterRow}>
+          {timeFilterOptions.map((f) => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => setTimeFilter(f)}
+              style={[
+                styles.timeFilterBtn,
+                timeFilter === f && styles.timeFilterBtnActive,
+              ]}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.timeFilterText,
+                  timeFilter === f && styles.timeFilterTextActive,
+                ]}
+              >
+                {f}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* BODY WEIGHT PROGRESSION CHART */}
-        <Card variant="default" style={styles.chartCard}>
-          <View style={styles.chartCardHeader}>
+        {/* BODY WEIGHT TREND CARD */}
+        <Card variant="elevated" style={styles.chartCard}>
+          <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>Weight Progression</Text>
+              <Text style={styles.chartTitle}>Body Weight Trend</Text>
               <Text style={styles.chartSubtitle}>
-                Current: {formatWeight(currentWeight, settings.weightUnit)} (
-                {weightChange > 0 ? `+${weightChange}` : weightChange} kg)
+                Current: {formatWeight(currentWeight, settings.weightUnit)}
               </Text>
             </View>
             <Badge
-              label={`Goal: ${goalWeight} kg`}
-              variant="primary"
+              label={totalChange <= 0 ? `${totalChange} kg` : `+${totalChange} kg`}
+              variant={totalChange <= 0 ? 'primary' : 'orange'}
               size="sm"
             />
           </View>
 
-          <LineChart
-            data={weightDataPoints}
-            height={190}
-            unit={settings.weightUnit}
-            color={Palette.primary}
-          />
-        </Card>
-
-        {/* WORKOUT VOLUME PROGRESSION CHART */}
-        <Card variant="default" style={styles.chartCard}>
-          <View style={styles.chartCardHeader}>
-            <View>
-              <Text style={styles.chartTitle}>Workout Volume</Text>
-              <Text style={styles.chartSubtitle}>Total kg lifted per session</Text>
+          {/* Weight Delta Summary */}
+          <View style={styles.deltaBar}>
+            <View style={styles.deltaItem}>
+              <Text style={styles.deltaItemVal}>{startWeight} kg</Text>
+              <Text style={styles.deltaItemLbl}>Start</Text>
             </View>
-            <Badge label="Progressive Overload" variant="cyan" size="sm" />
+            <View style={styles.deltaItem}>
+              <Text style={[styles.deltaItemVal, { color: Palette.primary }]}>
+                {currentWeight} kg
+              </Text>
+              <Text style={styles.deltaItemLbl}>Current</Text>
+            </View>
+            <View style={styles.deltaItem}>
+              <Text style={[styles.deltaItemVal, { color: Palette.purple }]}>
+                {targetWeight} kg
+              </Text>
+              <Text style={styles.deltaItemLbl}>Target ({toGoal > 0 ? `${toGoal}kg left` : 'Done'})</Text>
+            </View>
           </View>
 
-          <LineChart
-            data={volumeDataPoints}
-            height={190}
-            unit="kg"
-            color={Palette.cyan}
-            gradientFrom={Palette.cyan}
-            gradientTo="rgba(0, 210, 255, 0)"
-          />
+          {/* SVG Line Chart */}
+          <View style={styles.svgWrapper}>
+            <LineChart
+              data={weightChartData}
+              color={Palette.primary}
+              height={140}
+              unit="kg"
+            />
+          </View>
         </Card>
 
-        {/* 28-DAY WORKOUT CONSISTENCY HEATMAP */}
+        {/* WORKOUT VOLUME PROGRESSION */}
         <Card variant="default" style={styles.chartCard}>
-          <View style={styles.chartCardHeader}>
+          <View style={styles.chartHeader}>
             <View>
-              <Text style={styles.chartTitle}>Activity Consistency</Text>
-              <Text style={styles.chartSubtitle}>4-week workout frequency</Text>
+              <Text style={styles.chartTitle}>Workout Volume</Text>
+              <Text style={styles.chartSubtitle}>Weight lifted per session</Text>
             </View>
+            <Badge label="Hypertrophy" variant="cyan" size="sm" />
+          </View>
+
+          <View style={styles.svgWrapper}>
+            <LineChart
+              data={volumeChartData}
+              color={Palette.cyan}
+              height={140}
+              unit="kg"
+            />
+          </View>
+        </Card>
+
+        {/* 28-DAY CONSISTENCY HEATMAP */}
+        <Card variant="default" style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <View>
+              <Text style={styles.chartTitle}>28-Day Consistency</Text>
+              <Text style={styles.chartSubtitle}>Workout frequency matrix</Text>
+            </View>
+            <Badge label={`${completedWorkouts.length} sessions`} variant="primary" size="sm" />
           </View>
 
           <ActivityHeatmap completedWorkouts={completedWorkouts} />
         </Card>
 
-        {/* PERSONAL RECORDS SHOWCASE */}
-        <Card variant="default" style={styles.chartCard}>
-          <View style={styles.chartCardHeader}>
-            <View>
-              <Text style={styles.chartTitle}>Personal Records (PR)</Text>
-              <Text style={styles.chartSubtitle}>Estimated 1-Rep Maximums</Text>
-            </View>
-            <Ionicons name="trophy" size={22} color={Palette.amber} />
-          </View>
-
-          <View style={styles.prList}>
-            {prExercises.map((ex) => (
-              <View key={ex.id} style={styles.prRow}>
-                <View style={styles.prExInfo}>
-                  <Text style={styles.prExName}>{ex.name}</Text>
-                  <Text style={styles.prExDetail}>
-                    {ex.personalRecord?.weightKg}kg × {ex.personalRecord?.reps} reps (
-                    {formatDate(ex.personalRecord?.date || '')})
-                  </Text>
-                </View>
-                <View style={styles.pr1RMBadge}>
-                  <Text style={styles.pr1RMVal}>
-                    {ex.personalRecord?.calculated1RM}
-                  </Text>
-                  <Text style={styles.pr1RMLabel}>1RM kg</Text>
-                </View>
+        {/* PERSONAL RECORDS BOARD */}
+        <Text style={styles.prBoardTitle}>🏆 Personal Records Showcase</Text>
+        {exercisesWithPR.map((ex) => (
+          <TouchableOpacity
+            key={ex.id}
+            onPress={() => router.push(`/exercise/${ex.id}`)}
+            activeOpacity={0.8}
+          >
+            <Card variant="default" style={styles.prCard}>
+              <View style={styles.prLeft}>
+                <Text style={styles.prExName}>{ex.name}</Text>
+                <Text style={styles.prExSub}>
+                  {ex.personalRecord?.weightKg} kg × {ex.personalRecord?.reps} reps • {formatDate(ex.personalRecord?.date || '')}
+                </Text>
               </View>
-            ))}
-          </View>
-        </Card>
+              <View style={styles.prRight}>
+                <Text style={styles.pr1RMVal}>{ex.personalRecord?.calculated1RM} kg</Text>
+                <Text style={styles.pr1RMLbl}>1RM</Text>
+              </View>
+            </Card>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -246,88 +236,111 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Palette.bgApp,
   },
-  filterContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
     paddingBottom: Spacing.xxxl,
   },
-  logWeightHeaderBtn: {
+  logWeightBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Palette.amber,
+    backgroundColor: Palette.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
     gap: 4,
   },
-  logWeightHeaderBtnText: {
+  logWeightBtnText: {
     color: Palette.textInverse,
-    fontSize: Typography.fontSizes.subhead,
-    fontWeight: Typography.fontWeights.bold,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.heavy,
   },
-  statsGrid: {
+  timeFilterRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    backgroundColor: Palette.bgCard,
+    borderRadius: BorderRadius.full,
+    padding: 3,
     marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Palette.borderSubtle,
   },
-  miniStatCard: {
+  timeFilterBtn: {
     flex: 1,
+    paddingVertical: 6,
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
-  statIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
+  timeFilterBtnActive: {
+    backgroundColor: Palette.primary,
   },
-  miniStatValue: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.black,
-  },
-  miniStatLabel: {
+  timeFilterText: {
     color: Palette.textMuted,
     fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
+    fontWeight: Typography.fontWeights.semibold,
+  },
+  timeFilterTextActive: {
+    color: Palette.textInverse,
+    fontWeight: Typography.fontWeights.heavy,
   },
   chartCard: {
     marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
-  chartCardHeader: {
+  chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: Spacing.sm,
   },
   chartTitle: {
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.title3,
+    fontSize: Typography.fontSizes.body,
     fontWeight: Typography.fontWeights.bold,
   },
   chartSubtitle: {
-    color: Palette.textMuted,
+    color: Palette.textSecondary,
     fontSize: Typography.fontSizes.caption,
     marginTop: 2,
   },
-  prList: {
+  deltaBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: Palette.bgInput,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  deltaItem: {
+    alignItems: 'center',
+  },
+  deltaItemVal: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  deltaItemLbl: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.micro,
+    marginTop: 2,
+  },
+  svgWrapper: {
     marginTop: Spacing.xs,
   },
-  prRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.borderSubtle,
+  prBoardTitle: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.body,
+    fontWeight: Typography.fontWeights.bold,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  prExInfo: {
+  prCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    padding: Spacing.md,
+  },
+  prLeft: {
     flex: 1,
   },
   prExName: {
@@ -335,28 +348,21 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSizes.subhead,
     fontWeight: Typography.fontWeights.bold,
   },
-  prExDetail: {
+  prExSub: {
     color: Palette.textMuted,
     fontSize: Typography.fontSizes.caption,
     marginTop: 2,
   },
-  pr1RMBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+  prRight: {
+    alignItems: 'flex-end',
   },
   pr1RMVal: {
     color: Palette.amber,
-    fontSize: Typography.fontSizes.body,
+    fontSize: Typography.fontSizes.title3,
     fontWeight: Typography.fontWeights.heavy,
   },
-  pr1RMLabel: {
-    color: Palette.amber,
+  pr1RMLbl: {
+    color: Palette.textMuted,
     fontSize: Typography.fontSizes.micro,
-    fontWeight: Typography.fontWeights.semibold,
   },
 });

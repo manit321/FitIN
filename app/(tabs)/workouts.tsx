@@ -13,109 +13,120 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFitness } from '../../context/FitnessContext';
 import { Palette } from '../../constants/colors';
 import { AppHeader } from '../../components/ui/AppHeader';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { WorkoutCard } from '../../components/workout/WorkoutCard';
 import { ExerciseListItem } from '../../components/workout/ExerciseListItem';
-import { EmptyState } from '../../components/ui/EmptyState';
-import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
 import { Spacing, Typography, BorderRadius } from '../../constants/theme';
-import { formatDate, formatDuration } from '../../utils/formatters';
 import { RoutineCategory, MuscleGroup } from '../../types';
+import { formatDate } from '../../utils/formatters';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const {
-    routines,
-    exercises,
-    completedWorkouts,
-    startWorkout,
-    deleteCompletedWorkout,
-  } = useFitness();
+  const { routines, exercises, completedWorkouts, startWorkout } = useFitness();
 
   const [activeTab, setActiveTab] = useState<'programs' | 'exercises' | 'history'>('programs');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [exerciseSearch, setExerciseSearch] = useState<string>('');
   const [selectedMuscle, setSelectedMuscle] = useState<string>('All');
+  const [exerciseSearch, setExerciseSearch] = useState<string>('');
 
-  const categories = ['All', 'Push', 'Pull', 'Legs', 'Upper', 'Full Body', 'Custom'];
-  const muscles = ['All', 'Chest', 'Back', 'Shoulders', 'Legs', 'Biceps', 'Triceps', 'Core', 'Cardio'];
+  const categories: string[] = [
+    'All',
+    'Push',
+    'Pull',
+    'Legs',
+    'Upper',
+    'Full Body',
+    'Cardio',
+    'Custom',
+  ];
 
-  // Filter routines
+  const muscleGroups: string[] = [
+    'All',
+    'Chest',
+    'Back',
+    'Legs',
+    'Shoulders',
+    'Biceps',
+    'Triceps',
+    'Core',
+  ];
+
   const filteredRoutines = routines.filter((r) => {
     if (selectedCategory === 'All') return true;
     if (selectedCategory === 'Custom') return r.isCustom;
-    return r.category === selectedCategory;
+    return r.category.toLowerCase() === selectedCategory.toLowerCase();
   });
 
-  // Filter exercises
-  const filteredExercises = exercises.filter((e) => {
-    const matchesSearch = e.name.toLowerCase().includes(exerciseSearch.toLowerCase());
+  const filteredExercises = exercises.filter((ex) => {
+    const matchesSearch = ex.name.toLowerCase().includes(exerciseSearch.toLowerCase());
     const matchesMuscle =
       selectedMuscle === 'All' ||
-      e.targetMuscle === selectedMuscle ||
-      e.secondaryMuscles.includes(selectedMuscle as MuscleGroup);
+      ex.targetMuscle.toLowerCase() === selectedMuscle.toLowerCase() ||
+      ex.secondaryMuscles.some((m) => m.toLowerCase() === selectedMuscle.toLowerCase());
     return matchesSearch && matchesMuscle;
   });
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
-      <AppHeader
-        subtitle="TRAIN HARD"
-        title="Workouts"
-        rightAction={
-          <TouchableOpacity
-            onPress={() => router.push('/workout/create')}
-            style={styles.addRoutineBtn}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={20} color={Palette.textInverse} />
-            <Text style={styles.addRoutineBtnText}>New Routine</Text>
-          </TouchableOpacity>
-        }
-      />
-
-      {/* Main Sub-tabs Switcher */}
-      <View style={styles.tabSwitcherContainer}>
-        <SegmentedControl
-          options={[
-            { label: 'Programs', value: 'programs' },
-            { label: 'Exercises', value: 'exercises' },
-            { label: 'History', value: 'history' },
-          ]}
-          selectedValue={activeTab}
-          onSelect={(val) => setActiveTab(val)}
-        />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* VIEW 1: WORKOUT PROGRAMS */}
+        {/* Header */}
+        <AppHeader
+          title="Workouts"
+          subtitle="TRAINING & EXERCISES"
+          rightAction={
+            <TouchableOpacity
+              onPress={() => router.push('/workout/create')}
+              style={styles.createBtn}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={16} color={Palette.textInverse} />
+              <Text style={styles.createBtnText}>Build</Text>
+            </TouchableOpacity>
+          }
+        />
+
+        {/* View Switcher */}
+        <View style={styles.tabSwitcherWrapper}>
+          <SegmentedControl
+            options={[
+              { label: 'Programs', value: 'programs' },
+              { label: `Exercises (${exercises.length})`, value: 'exercises' },
+              { label: 'History', value: 'history' },
+            ]}
+            selectedValue={activeTab}
+            onSelect={(val) => setActiveTab(val)}
+          />
+        </View>
+
+        {/* VIEW 1: PROGRAMS */}
         {activeTab === 'programs' && (
           <View>
-            {/* Category Pills */}
+            {/* Category Filter Pills */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryPills}
+              contentContainerStyle={styles.pillsScroll}
             >
               {categories.map((cat) => (
                 <TouchableOpacity
                   key={cat}
                   onPress={() => setSelectedCategory(cat)}
                   style={[
-                    styles.categoryPill,
-                    selectedCategory === cat && styles.categoryPillActive,
+                    styles.pillBtn,
+                    selectedCategory === cat && styles.pillBtnActive,
                   ]}
                   activeOpacity={0.8}
                 >
                   <Text
                     style={[
-                      styles.categoryPillText,
-                      selectedCategory === cat && styles.categoryPillTextActive,
+                      styles.pillText,
+                      selectedCategory === cat && styles.pillTextActive,
                     ]}
                   >
                     {cat}
@@ -124,32 +135,38 @@ export default function WorkoutsScreen() {
               ))}
             </ScrollView>
 
-            {/* Routines List */}
-            {filteredRoutines.length > 0 ? (
-              filteredRoutines.map((routine) => (
-                <WorkoutCard
-                  key={routine.id}
-                  routine={routine}
-                  onPress={() => router.push(`/workout/${routine.id}`)}
-                  onStart={() => {
-                    startWorkout(routine);
-                    router.push('/workout/active');
-                  }}
-                />
-              ))
-            ) : (
-              <EmptyState
-                icon="barbell-outline"
-                title="No Routines Found"
-                description="Create a custom workout program to get started."
-                actionTitle="Create Routine"
-                onAction={() => router.push('/workout/create')}
+            {/* Routines Grid */}
+            {filteredRoutines.map((routine) => (
+              <WorkoutCard
+                key={routine.id}
+                routine={routine}
+                onPress={() => router.push(`/workout/${routine.id}`)}
+                onStart={() => {
+                  startWorkout(routine);
+                  router.push('/workout/active');
+                }}
               />
+            ))}
+
+            {filteredRoutines.length === 0 && (
+              <Card variant="default" style={styles.emptyStateCard}>
+                <Text style={styles.emptyStateTitle}>No routines found</Text>
+                <Text style={styles.emptyStateSub}>
+                  Create your first custom workout routine.
+                </Text>
+                <Button
+                  title="Build Custom Routine"
+                  onPress={() => router.push('/workout/create')}
+                  variant="primary"
+                  size="sm"
+                  style={{ marginTop: Spacing.sm }}
+                />
+              </Card>
             )}
           </View>
         )}
 
-        {/* VIEW 2: EXERCISE LIBRARY */}
+        {/* VIEW 2: EXERCISES */}
         {activeTab === 'exercises' && (
           <View>
             {/* Search Input */}
@@ -157,34 +174,38 @@ export default function WorkoutsScreen() {
               <Ionicons name="search" size={18} color={Palette.textMuted} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search 30+ exercises..."
+                placeholder="Search exercises by name..."
                 placeholderTextColor={Palette.textMuted}
                 value={exerciseSearch}
                 onChangeText={setExerciseSearch}
-                clearButtonMode="while-editing"
               />
+              {exerciseSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setExerciseSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={Palette.textMuted} />
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* Muscle Group Filter */}
+            {/* Muscle Group Filter Pills */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryPills}
+              contentContainerStyle={styles.pillsScroll}
             >
-              {muscles.map((muscle) => (
+              {muscleGroups.map((muscle) => (
                 <TouchableOpacity
                   key={muscle}
                   onPress={() => setSelectedMuscle(muscle)}
                   style={[
-                    styles.categoryPill,
-                    selectedMuscle === muscle && styles.categoryPillActive,
+                    styles.pillBtn,
+                    selectedMuscle === muscle && styles.pillBtnActive,
                   ]}
                   activeOpacity={0.8}
                 >
                   <Text
                     style={[
-                      styles.categoryPillText,
-                      selectedMuscle === muscle && styles.categoryPillTextActive,
+                      styles.pillText,
+                      selectedMuscle === muscle && styles.pillTextActive,
                     ]}
                   >
                     {muscle}
@@ -194,91 +215,58 @@ export default function WorkoutsScreen() {
             </ScrollView>
 
             {/* Exercise List */}
-            {filteredExercises.length > 0 ? (
-              filteredExercises.map((exercise) => (
-                <ExerciseListItem
-                  key={exercise.id}
-                  exercise={exercise}
-                  onPress={() => router.push(`/exercise/${exercise.id}`)}
-                />
-              ))
-            ) : (
-              <EmptyState
-                icon="search-outline"
-                title="No Exercises Match"
-                description="Try a different search query or muscle filter."
+            {filteredExercises.map((ex) => (
+              <ExerciseListItem
+                key={ex.id}
+                exercise={ex}
+                onPress={() => router.push(`/exercise/${ex.id}`)}
               />
-            )}
+            ))}
           </View>
         )}
 
         {/* VIEW 3: WORKOUT HISTORY */}
         {activeTab === 'history' && (
           <View>
-            {completedWorkouts.length > 0 ? (
-              completedWorkouts.map((workout) => (
-                <Card key={workout.id} variant="default" style={styles.historyCard}>
-                  <View style={styles.historyHeader}>
-                    <View>
-                      <Text style={styles.historyDate}>{formatDate(workout.date)}</Text>
-                      <Text style={styles.historyTitle}>{workout.routineName}</Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => deleteCompletedWorkout(workout.id)}
-                      style={styles.deleteHistoryBtn}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={Palette.textMuted} />
-                    </TouchableOpacity>
+            {completedWorkouts.map((workout) => (
+              <Card key={workout.id} variant="default" style={styles.historyCard}>
+                <View style={styles.historyTopRow}>
+                  <View>
+                    <Text style={styles.historyName}>{workout.routineName}</Text>
+                    <Text style={styles.historyDate}>{formatDate(workout.date)}</Text>
                   </View>
+                  <Badge
+                    label={`${Math.round(workout.durationSeconds / 60)} min`}
+                    variant="primary"
+                    size="sm"
+                  />
+                </View>
 
-                  <View style={styles.historyStatsGrid}>
-                    <View style={styles.historyStatItem}>
-                      <Ionicons name="time-outline" size={16} color={Palette.cyan} />
-                      <Text style={styles.historyStatVal}>
-                        {formatDuration(workout.durationSeconds)}
-                      </Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <Ionicons name="barbell-outline" size={16} color={Palette.primary} />
-                      <Text style={styles.historyStatVal}>
-                        {workout.totalVolumeKg.toLocaleString()} kg
-                      </Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <Ionicons name="flame-outline" size={16} color={Palette.orange} />
-                      <Text style={styles.historyStatVal}>
-                        {workout.caloriesBurned} kcal
-                      </Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <Ionicons name="layers-outline" size={16} color={Palette.purple} />
-                      <Text style={styles.historyStatVal}>
-                        {workout.totalSetsCompleted} sets
-                      </Text>
-                    </View>
+                <View style={styles.historyStatsRow}>
+                  <View style={styles.historyStatBox}>
+                    <Text style={styles.historyStatVal}>{workout.totalVolumeKg} kg</Text>
+                    <Text style={styles.historyStatLbl}>Volume</Text>
                   </View>
+                  <View style={styles.historyStatBox}>
+                    <Text style={styles.historyStatVal}>{workout.totalSetsCompleted}</Text>
+                    <Text style={styles.historyStatLbl}>Sets</Text>
+                  </View>
+                  <View style={styles.historyStatBox}>
+                    <Text style={styles.historyStatVal}>{workout.caloriesBurned} kcal</Text>
+                    <Text style={styles.historyStatLbl}>Burned</Text>
+                  </View>
+                </View>
+              </Card>
+            ))}
 
-                  {workout.personalRecordsBroken && workout.personalRecordsBroken.length > 0 && (
-                    <View style={styles.prBanner}>
-                      <Ionicons name="trophy" size={16} color={Palette.amber} />
-                      <Text style={styles.prBannerText}>
-                        PR: {workout.personalRecordsBroken[0].exerciseName} (
-                        {workout.personalRecordsBroken[0].weightKg}kg ×{' '}
-                        {workout.personalRecordsBroken[0].reps})
-                      </Text>
-                    </View>
-                  )}
-                </Card>
-              ))
-            ) : (
-              <EmptyState
-                icon="time-outline"
-                title="No Workout History"
-                description="Complete your first workout to start tracking history."
-                actionTitle="Start Workout"
-                onAction={() => setActiveTab('programs')}
-              />
+            {completedWorkouts.length === 0 && (
+              <Card variant="default" style={styles.emptyStateCard}>
+                <Ionicons name="barbell-outline" size={32} color={Palette.textMuted} />
+                <Text style={styles.emptyStateTitle}>No workout history yet</Text>
+                <Text style={styles.emptyStateSub}>
+                  Complete your first workout to see your lifting logs here.
+                </Text>
+              </Card>
             )}
           </View>
         )}
@@ -294,51 +282,51 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
     paddingBottom: Spacing.xxxl,
   },
-  addRoutineBtn: {
+  createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Palette.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
     gap: 4,
   },
-  addRoutineBtnText: {
+  createBtnText: {
     color: Palette.textInverse,
-    fontSize: Typography.fontSizes.subhead,
-    fontWeight: Typography.fontWeights.bold,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.heavy,
   },
-  tabSwitcherContainer: {
-    paddingHorizontal: Spacing.lg,
+  tabSwitcherWrapper: {
     marginBottom: Spacing.md,
   },
-  categoryPills: {
+  pillsScroll: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    paddingBottom: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  categoryPill: {
+  pillBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: BorderRadius.full,
     backgroundColor: Palette.bgCardElevated,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
   },
-  categoryPillActive: {
+  pillBtnActive: {
     backgroundColor: Palette.primary,
     borderColor: Palette.primary,
   },
-  categoryPillText: {
+  pillText: {
     color: Palette.textSecondary,
-    fontSize: Typography.fontSizes.subhead,
+    fontSize: Typography.fontSizes.caption,
     fontWeight: Typography.fontWeights.semibold,
   },
-  categoryPillTextActive: {
+  pillTextActive: {
     color: Palette.textInverse,
-    fontWeight: Typography.fontWeights.bold,
+    fontWeight: Typography.fontWeights.heavy,
   },
   searchBar: {
     flexDirection: 'row',
@@ -347,7 +335,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     height: 44,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
     gap: Spacing.sm,
@@ -357,61 +345,59 @@ const styles = StyleSheet.create({
     color: Palette.textPrimary,
     fontSize: Typography.fontSizes.body,
   },
-  historyCard: {
-    marginBottom: Spacing.md,
+  emptyStateCard: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    gap: 4,
   },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-  },
-  historyDate: {
-    color: Palette.primary,
-    fontSize: Typography.fontSizes.caption,
-    fontWeight: Typography.fontWeights.bold,
-    textTransform: 'uppercase',
-  },
-  historyTitle: {
+  emptyStateTitle: {
     color: Palette.textPrimary,
     fontSize: Typography.fontSizes.body,
     fontWeight: Typography.fontWeights.bold,
-    marginTop: 2,
   },
-  deleteHistoryBtn: {
-    padding: 6,
-  },
-  historyStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: Palette.bgCardElevated,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-  historyStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  historyStatVal: {
+  emptyStateSub: {
     color: Palette.textSecondary,
     fontSize: Typography.fontSizes.caption,
-    fontWeight: Typography.fontWeights.bold,
+    textAlign: 'center',
   },
-  prBanner: {
+  historyCard: {
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+  },
+  historyTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    marginTop: Spacing.sm,
-    gap: 6,
+    marginBottom: Spacing.sm,
   },
-  prBannerText: {
-    color: Palette.amber,
-    fontSize: Typography.fontSizes.caption,
+  historyName: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.body,
     fontWeight: Typography.fontWeights.bold,
+  },
+  historyDate: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.caption,
+    marginTop: 2,
+  },
+  historyStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: Palette.bgInput,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+  },
+  historyStatBox: {
+    alignItems: 'center',
+  },
+  historyStatVal: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  historyStatLbl: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.micro,
+    marginTop: 2,
   },
 });

@@ -8,23 +8,23 @@ import {
   TextStyle,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Palette, Gradients } from '../../constants/colors';
-import { BorderRadius, Spacing, Typography, Shadows } from '../../constants/theme';
+import { Palette } from '../../constants/colors';
+import { Typography, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'gradient-orange';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
-  loading?: boolean;
-  disabled?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
+  loading?: boolean;
+  disabled?: boolean;
+  fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
-  fullWidth?: boolean;
+  hapticFeedback?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -32,189 +32,171 @@ export const Button: React.FC<ButtonProps> = ({
   onPress,
   variant = 'primary',
   size = 'md',
-  loading = false,
-  disabled = false,
   icon,
   iconPosition = 'left',
+  loading = false,
+  disabled = false,
+  fullWidth = false,
   style,
   textStyle,
-  fullWidth = false,
+  hapticFeedback = true,
 }) => {
   const handlePress = () => {
     if (disabled || loading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (hapticFeedback) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     onPress();
   };
 
-  const isGradient = variant === 'primary' || variant === 'gradient-orange';
-  const gradientColors =
-    variant === 'gradient-orange' ? Gradients.energy : Gradients.primary;
-
-  const getContainerPadding = () => {
-    switch (size) {
-      case 'sm':
-        return { paddingVertical: 8, paddingHorizontal: 14 };
-      case 'lg':
-        return { paddingVertical: 16, paddingHorizontal: 24 };
-      case 'md':
-      default:
-        return { paddingVertical: 12, paddingHorizontal: 18 };
-    }
+  const getContainerStyle = () => {
+    const sizeStyle = styles[`size_${size}`];
+    const variantStyle = styles[`variant_${variant}`];
+    return [
+      styles.base,
+      sizeStyle,
+      variantStyle,
+      fullWidth && styles.fullWidth,
+      disabled && styles.disabled,
+      variant === 'primary' && Shadows.glowPrimary,
+      style,
+    ];
   };
 
-  const getFontSize = () => {
-    switch (size) {
-      case 'sm':
-        return Typography.fontSizes.subhead;
-      case 'lg':
-        return Typography.fontSizes.body;
-      case 'md':
-      default:
-        return Typography.fontSizes.subhead;
-    }
+  const getTextStyle = () => {
+    const textVariantStyle = styles[`text_${variant}`];
+    const textSizeStyle = styles[`textSize_${size}`];
+    return [
+      styles.baseText,
+      textVariantStyle,
+      textSizeStyle,
+      disabled && styles.disabledText,
+      textStyle,
+    ];
   };
 
-  const renderContent = () => (
-    <View style={styles.contentRow}>
+  return (
+    <TouchableOpacity
+      activeOpacity={0.82}
+      onPress={handlePress}
+      disabled={disabled || loading}
+      style={getContainerStyle()}
+    >
       {loading ? (
         <ActivityIndicator
           size="small"
           color={variant === 'primary' ? Palette.textInverse : Palette.primary}
         />
       ) : (
-        <>
+        <View style={styles.contentRow}>
           {icon && iconPosition === 'left' && (
             <View style={styles.iconLeft}>{icon}</View>
           )}
-          <Text
-            style={[
-              styles.text,
-              {
-                fontSize: getFontSize(),
-                color:
-                  variant === 'primary' || variant === 'gradient-orange'
-                    ? Palette.textInverse
-                    : variant === 'danger'
-                    ? Palette.danger
-                    : variant === 'outline' || variant === 'ghost'
-                    ? Palette.textPrimary
-                    : Palette.textPrimary,
-              },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
+          <Text style={getTextStyle()}>{title}</Text>
           {icon && iconPosition === 'right' && (
             <View style={styles.iconRight}>{icon}</View>
           )}
-        </>
+        </View>
       )}
-    </View>
-  );
-
-  if (isGradient && !disabled) {
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={handlePress}
-        disabled={disabled || loading}
-        style={[
-          styles.touchable,
-          fullWidth && styles.fullWidth,
-          Shadows.glowPrimary,
-          style,
-        ]}
-      >
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.gradientContainer, getContainerPadding()]}
-        >
-          {renderContent()}
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  }
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={handlePress}
-      disabled={disabled || loading}
-      style={[
-        styles.baseButton,
-        getContainerPadding(),
-        variant === 'secondary' && styles.secondaryButton,
-        variant === 'danger' && styles.dangerButton,
-        variant === 'outline' && styles.outlineButton,
-        variant === 'ghost' && styles.ghostButton,
-        disabled && styles.disabledButton,
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
-    >
-      {renderContent()}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  touchable: {
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-  },
-  gradientContainer: {
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  baseButton: {
+  base: {
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  secondaryButton: {
-    backgroundColor: Palette.bgCardElevated,
-    borderWidth: 1,
-    borderColor: Palette.borderDefault,
-  },
-  dangerButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Palette.borderDefault,
-  },
-  ghostButton: {
-    backgroundColor: 'transparent',
-  },
-  disabledButton: {
-    backgroundColor: Palette.bgInput,
-    opacity: 0.5,
-    borderColor: 'transparent',
-  },
-  fullWidth: {
-    width: '100%',
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconLeft: {
-    marginRight: Spacing.sm,
+  fullWidth: {
+    width: '100%',
   },
-  iconRight: {
-    marginLeft: Spacing.sm,
+  // Sizes
+  size_sm: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    minHeight: 36,
   },
-  text: {
+  size_md: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 12,
+    minHeight: 46,
+  },
+  size_lg: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 15,
+    minHeight: 52,
+    borderRadius: BorderRadius.lg,
+  },
+  // Variants
+  variant_primary: {
+    backgroundColor: Palette.primary,
+  },
+  variant_secondary: {
+    backgroundColor: Palette.bgCardElevated,
+    borderWidth: 1,
+    borderColor: Palette.borderDefault,
+  },
+  variant_outline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Palette.primary,
+  },
+  variant_ghost: {
+    backgroundColor: 'transparent',
+  },
+  variant_danger: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+  },
+  disabled: {
+    opacity: 0.45,
+  },
+  // Text
+  baseText: {
     fontWeight: Typography.fontWeights.bold,
     textAlign: 'center',
+    letterSpacing: -0.2,
+  },
+  textSize_sm: {
+    fontSize: Typography.fontSizes.subhead,
+  },
+  textSize_md: {
+    fontSize: Typography.fontSizes.body,
+  },
+  textSize_lg: {
+    fontSize: Typography.fontSizes.headline,
+  },
+  text_primary: {
+    color: Palette.textInverse,
+    fontWeight: Typography.fontWeights.heavy,
+  },
+  text_secondary: {
+    color: Palette.textPrimary,
+  },
+  text_outline: {
+    color: Palette.primary,
+  },
+  text_ghost: {
+    color: Palette.primary,
+  },
+  text_danger: {
+    color: Palette.danger,
+  },
+  disabledText: {
+    color: Palette.textDisabled,
+  },
+  iconLeft: {
+    marginRight: Spacing.xs,
+  },
+  iconRight: {
+    marginLeft: Spacing.xs,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ScrollView,
   View,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
-  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,10 +15,8 @@ import { AppHeader } from '../../components/ui/AppHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { ProgressBar } from '../../components/ui/ProgressBar';
 import { MacroRings } from '../../components/charts/MacroRings';
 import { BarChart, BarDataPoint } from '../../components/charts/BarChart';
-import { WaterTrackerCard } from '../../components/nutrition/WaterTrackerCard';
 import { Spacing, Typography, BorderRadius } from '../../constants/theme';
 import { formatFullDate, formatWeight, formatWater } from '../../utils/formatters';
 import { calculateStreak } from '../../utils/calculations';
@@ -33,39 +30,35 @@ export default function HomeScreen() {
     completedWorkouts,
     loggedMeals,
     waterLogs,
-    weightEntries,
     startWorkout,
     addWater,
-    setWater,
   } = useFitness();
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Calculate today's nutrition totals
+  // Nutrition Totals
   const todayMeals = loggedMeals.filter((m) => m.date === todayStr);
   const consumedCalories = todayMeals.reduce((acc, m) => acc + m.calories, 0);
   const consumedProtein = Math.round(todayMeals.reduce((acc, m) => acc + m.proteinG, 0) * 10) / 10;
   const consumedCarbs = Math.round(todayMeals.reduce((acc, m) => acc + m.carbsG, 0) * 10) / 10;
   const consumedFat = Math.round(todayMeals.reduce((acc, m) => acc + m.fatG, 0) * 10) / 10;
 
-  // Calculate today's water
+  // Water Totals
   const todayWaterLogs = waterLogs.filter((w) => w.date === todayStr);
   const currentWaterMl = todayWaterLogs.reduce((acc, w) => acc + w.amountMl, 0);
 
-  // Check if today has a completed workout
+  // Today's Workout
   const todayWorkout = completedWorkouts.find((w) => w.date === todayStr);
-
-  // Suggested routine for today
   const suggestedRoutine = routines.length > 0 ? routines[0] : null;
 
-  // Calculate current streak
+  // Streak
   const loggedDates = Array.from(new Set(loggedMeals.map((m) => m.date)));
   const streak = calculateStreak(completedWorkouts, loggedDates);
 
-  // Weekly workout data for BarChart
+  // Weekly data for BarChart
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const todayDate = new Date();
-  const currentDayIndex = (todayDate.getDay() + 6) % 7; // 0 for Monday
+  const currentDayIndex = (todayDate.getDay() + 6) % 7;
 
   const weeklyData: BarDataPoint[] = weekDays.map((dayName, idx) => {
     const diff = idx - currentDayIndex;
@@ -84,11 +77,7 @@ export default function HomeScreen() {
     };
   });
 
-  // Recent Weight
-  const currentWeight = profile.weightKg;
-  const targetWeight = profile.targetWeightKg;
-  const startWeight = profile.startWeightKg;
-  const weightChange = Math.round((currentWeight - startWeight) * 10) / 10;
+  const weightDelta = Math.round((profile.weightKg - profile.targetWeightKg) * 10) / 10;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -96,7 +85,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* App Header */}
+        {/* Apple-Style App Header */}
         <AppHeader
           subtitle={formatFullDate()}
           title={`Hey, ${profile.name.split(' ')[0]} 👋`}
@@ -104,18 +93,81 @@ export default function HomeScreen() {
           rightAction={
             <TouchableOpacity
               onPress={() => router.push('/profile')}
-              style={styles.profileAvatarBtn}
+              style={styles.avatarBtn}
               activeOpacity={0.8}
             >
-              <Ionicons name="person-circle" size={38} color={Palette.primary} />
+              <Ionicons name="person-circle" size={36} color={Palette.primary} />
             </TouchableOpacity>
           }
         />
 
-        {/* QUICK ACTIONS ROW */}
-        <View style={styles.quickActionsContainer}>
+        {/* HERO NUTRITION & ENERGY HUB */}
+        <Card variant="elevated" style={styles.heroEnergyCard}>
+          <View style={styles.macroRow}>
+            <MacroRings
+              calories={{ current: consumedCalories, target: profile.targetCalories }}
+              protein={{ current: consumedProtein, target: profile.targetProteinG }}
+              carbs={{ current: consumedCarbs, target: profile.targetCarbsG }}
+              fat={{ current: consumedFat, target: profile.targetFatG }}
+              size={154}
+            />
+
+            <View style={styles.macroDetailsCol}>
+              {/* Calories */}
+              <View style={styles.macroItem}>
+                <View style={styles.macroHeader}>
+                  <View style={[styles.macroDot, { backgroundColor: Palette.calories }]} />
+                  <Text style={styles.macroName}>Calories</Text>
+                </View>
+                <Text style={styles.macroValue}>
+                  {consumedCalories}{' '}
+                  <Text style={styles.macroTarget}>/ {profile.targetCalories} kcal</Text>
+                </Text>
+              </View>
+
+              {/* Protein */}
+              <View style={styles.macroItem}>
+                <View style={styles.macroHeader}>
+                  <View style={[styles.macroDot, { backgroundColor: Palette.protein }]} />
+                  <Text style={styles.macroName}>Protein</Text>
+                </View>
+                <Text style={styles.macroValue}>
+                  {consumedProtein}g{' '}
+                  <Text style={styles.macroTarget}>/ {profile.targetProteinG}g</Text>
+                </Text>
+              </View>
+
+              {/* Carbs */}
+              <View style={styles.macroItem}>
+                <View style={styles.macroHeader}>
+                  <View style={[styles.macroDot, { backgroundColor: Palette.carbs }]} />
+                  <Text style={styles.macroName}>Carbs</Text>
+                </View>
+                <Text style={styles.macroValue}>
+                  {consumedCarbs}g{' '}
+                  <Text style={styles.macroTarget}>/ {profile.targetCarbsG}g</Text>
+                </Text>
+              </View>
+
+              {/* Fat */}
+              <View style={styles.macroItem}>
+                <View style={styles.macroHeader}>
+                  <View style={[styles.macroDot, { backgroundColor: Palette.fat }]} />
+                  <Text style={styles.macroName}>Fat</Text>
+                </View>
+                <Text style={styles.macroValue}>
+                  {consumedFat}g{' '}
+                  <Text style={styles.macroTarget}>/ {profile.targetFatG}g</Text>
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Card>
+
+        {/* QUICK ACTION CHIPS */}
+        <View style={styles.quickActionsRow}>
           <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: 'rgba(0, 245, 155, 0.1)' }]}
+            style={styles.quickChip}
             onPress={() => {
               if (suggestedRoutine) {
                 startWorkout(suggestedRoutine);
@@ -126,268 +178,155 @@ export default function HomeScreen() {
             }}
             activeOpacity={0.8}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Palette.primary }]}>
-              <Ionicons name="play" size={18} color={Palette.textInverse} />
-            </View>
-            <Text style={styles.quickActionTitle}>Start Workout</Text>
+            <Ionicons name="play" size={15} color={Palette.primary} />
+            <Text style={styles.quickChipText}>Workout</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: 'rgba(0, 210, 255, 0.1)' }]}
+            style={styles.quickChip}
             onPress={() => router.push('/nutrition/add-food')}
             activeOpacity={0.8}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Palette.cyan }]}>
-              <Ionicons name="restaurant" size={18} color={Palette.textInverse} />
-            </View>
-            <Text style={styles.quickActionTitle}>Log Food</Text>
+            <Ionicons name="add" size={16} color={Palette.cyan} />
+            <Text style={styles.quickChipText}>Log Food</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}
+            style={styles.quickChip}
             onPress={() => addWater(250)}
             activeOpacity={0.8}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Palette.water }]}>
-              <Ionicons name="water" size={18} color={Palette.textInverse} />
-            </View>
-            <Text style={styles.quickActionTitle}>+250ml Water</Text>
+            <Ionicons name="water" size={15} color={Palette.blue} />
+            <Text style={styles.quickChipText}>+250ml</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}
+            style={styles.quickChip}
             onPress={() => router.push('/weight/log')}
             activeOpacity={0.8}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: Palette.amber }]}>
-              <Ionicons name="scale" size={18} color={Palette.textInverse} />
-            </View>
-            <Text style={styles.quickActionTitle}>Log Weight</Text>
+            <Ionicons name="scale" size={15} color={Palette.purple} />
+            <Text style={styles.quickChipText}>Weight</Text>
           </TouchableOpacity>
         </View>
 
-        {/* NUTRITION & CALORIE SUMMARY CARD */}
-        <Card variant="elevated" style={styles.macroDashboardCard}>
-          <View style={styles.macroCardHeader}>
-            <View>
-              <Text style={styles.sectionHeading}>Daily Nutrition</Text>
-              <Text style={styles.sectionSubheading}>Target: {profile.targetCalories} kcal</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => router.push('/nutrition')}
-              style={styles.detailsLink}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.detailsLinkText}>View Meals</Text>
-              <Ionicons name="chevron-forward" size={14} color={Palette.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.macroDashboardBody}>
-            {/* Concentric Rings */}
-            <MacroRings
-              size={160}
-              consumedCalories={consumedCalories}
-              targetCalories={profile.targetCalories}
-              proteinG={consumedProtein}
-              targetProteinG={profile.targetProteinG}
-              carbsG={consumedCarbs}
-              targetCarbsG={profile.targetCarbsG}
-              fatG={consumedFat}
-              targetFatG={profile.targetFatG}
-            />
-
-            {/* Macro Progress Bars */}
-            <View style={styles.macroBarsColumn}>
-              <ProgressBar
-                label="Protein"
-                current={consumedProtein}
-                target={profile.targetProteinG}
-                unit="g"
-                color={Palette.protein}
-                height={6}
-              />
-              <ProgressBar
-                label="Carbs"
-                current={consumedCarbs}
-                target={profile.targetCarbsG}
-                unit="g"
-                color={Palette.carbs}
-                height={6}
-              />
-              <ProgressBar
-                label="Fat"
-                current={consumedFat}
-                target={profile.targetFatG}
-                unit="g"
-                color={Palette.fat}
-                height={6}
-              />
-            </View>
-          </View>
-        </Card>
-
         {/* TODAY'S WORKOUT SPOTLIGHT */}
-        <Card variant="default" style={styles.workoutSpotlightCard}>
-          <View style={styles.spotlightHeader}>
-            <View style={styles.spotlightTitleRow}>
-              <View style={styles.spotlightIcon}>
-                <Ionicons name="flame" size={22} color={Palette.orange} />
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Today's Workout</Text>
+          <TouchableOpacity onPress={() => router.push('/workouts')}>
+            <Text style={styles.sectionLink}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {todayWorkout ? (
+          <Card variant="highlight" style={styles.workoutCompletedCard}>
+            <View style={styles.workoutCompletedHeader}>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={18} color={Palette.textInverse} />
               </View>
-              <View>
-                <Text style={styles.spotlightCategory}>
-                  {todayWorkout ? 'TODAY COMPLETED' : 'UP NEXT'}
-                </Text>
-                <Text style={styles.spotlightRoutineName}>
-                  {todayWorkout
-                    ? todayWorkout.routineName
-                    : suggestedRoutine?.name || 'Full Body Workout'}
+              <View style={styles.workoutCompletedInfo}>
+                <Text style={styles.workoutDoneTitle}>{todayWorkout.routineName}</Text>
+                <Text style={styles.workoutDoneSub}>
+                  Completed • {Math.round(todayWorkout.durationSeconds / 60)} min • {todayWorkout.totalVolumeKg} kg volume
                 </Text>
               </View>
             </View>
-
-            {todayWorkout && (
-              <Badge label="Finished" variant="success" size="sm" />
-            )}
-          </View>
-
-          {todayWorkout ? (
-            <View style={styles.completedWorkoutSummary}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {Math.round(todayWorkout.durationSeconds / 60)}m
+          </Card>
+        ) : suggestedRoutine ? (
+          <Card variant="default" style={styles.suggestedWorkoutCard}>
+            <View style={styles.suggestedTopRow}>
+              <View style={styles.suggestedLeft}>
+                <Badge label={suggestedRoutine.category} variant="primary" size="sm" />
+                <Text style={styles.suggestedTitle}>{suggestedRoutine.name}</Text>
+                <Text style={styles.suggestedSub}>
+                  {suggestedRoutine.exercises.length} exercises • ~{suggestedRoutine.estimatedMinutes} mins
                 </Text>
-                <Text style={styles.summaryLabel}>Duration</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {todayWorkout.totalVolumeKg}kg
-                </Text>
-                <Text style={styles.summaryLabel}>Volume</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {todayWorkout.totalSetsCompleted}
-                </Text>
-                <Text style={styles.summaryLabel}>Sets Done</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {todayWorkout.caloriesBurned}
-                </Text>
-                <Text style={styles.summaryLabel}>Burned</Text>
               </View>
             </View>
-          ) : suggestedRoutine ? (
-            <View style={styles.suggestedRoutineInfo}>
-              <Text style={styles.suggestedDesc} numberOfLines={2}>
-                {suggestedRoutine.description}
-              </Text>
-              <View style={styles.routineMetaPills}>
-                <Badge
-                  label={`${suggestedRoutine.exercises.length} Exercises`}
-                  variant="muted"
-                  size="sm"
-                />
-                <Badge
-                  label={`${suggestedRoutine.estimatedMinutes} Mins`}
-                  variant="muted"
-                  size="sm"
-                />
-                <Badge
-                  label={suggestedRoutine.difficulty}
-                  variant="cyan"
-                  size="sm"
-                />
-              </View>
-              <Button
-                title="Start Workout"
-                onPress={() => {
-                  startWorkout(suggestedRoutine);
-                  router.push('/workout/active');
-                }}
-                variant="primary"
-                fullWidth
-                icon={<Ionicons name="play" size={18} color={Palette.textInverse} />}
-                style={styles.startWorkoutBtn}
-              />
-            </View>
-          ) : null}
-        </Card>
+            <Button
+              title="Start Session"
+              onPress={() => {
+                startWorkout(suggestedRoutine);
+                router.push('/workout/active');
+              }}
+              variant="primary"
+              size="md"
+              icon={<Ionicons name="play" size={16} color={Palette.textInverse} />}
+              style={{ marginTop: Spacing.sm }}
+            />
+          </Card>
+        ) : (
+          <Card variant="default" style={styles.emptyWorkoutCard}>
+            <Text style={styles.emptyWorkoutText}>No workout scheduled for today.</Text>
+            <Button
+              title="Browse Workouts"
+              onPress={() => router.push('/workouts')}
+              variant="secondary"
+              size="sm"
+            />
+          </Card>
+        )}
 
-        {/* WATER TRACKER */}
-        <WaterTrackerCard
-          currentWaterMl={currentWaterMl}
-          targetWaterMl={profile.targetWaterMl}
-          waterUnit={settings.waterUnit}
-          onAddWater={(amt) => addWater(amt)}
-          onResetWater={() => setWater(0)}
-        />
-
-        {/* BODY WEIGHT PROGRESS SUMMARY */}
-        <Card variant="default" style={styles.weightCard}>
-          <View style={styles.weightHeader}>
-            <View>
-              <Text style={styles.weightCardTitle}>Body Weight</Text>
-              <Text style={styles.weightCardSubtitle}>Target: {targetWeight} kg</Text>
+        {/* HYDRATION & BODY WEIGHT METRICS */}
+        <View style={styles.twoColGrid}>
+          {/* Hydration Card */}
+          <Card variant="default" style={styles.metricCard}>
+            <View style={styles.metricHeader}>
+              <Ionicons name="water" size={18} color={Palette.blue} />
+              <Text style={styles.metricCardLabel}>Hydration</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/weight/log')}
-              style={styles.logWeightBtn}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={16} color={Palette.primary} />
-              <Text style={styles.logWeightBtnText}>Log Weight</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.weightStatsGrid}>
-            <View style={styles.weightStatBox}>
-              <Text style={styles.weightStatValue}>
-                {formatWeight(currentWeight, settings.weightUnit)}
-              </Text>
-              <Text style={styles.weightStatLabel}>Current</Text>
-            </View>
-            <View style={styles.weightStatBox}>
-              <Text
-                style={[
-                  styles.weightStatValue,
-                  { color: weightChange <= 0 ? Palette.success : Palette.warning },
-                ]}
+            <Text style={styles.metricValue}>
+              {formatWater(currentWaterMl, settings.waterUnit)}
+            </Text>
+            <Text style={styles.metricSub}>
+              Goal: {formatWater(profile.targetWaterMl, settings.waterUnit)}
+            </Text>
+            <View style={styles.waterBtnRow}>
+              <TouchableOpacity
+                onPress={() => addWater(250)}
+                style={styles.waterAddMiniBtn}
               >
-                {weightChange > 0 ? `+${weightChange}` : weightChange} kg
-              </Text>
-              <Text style={styles.weightStatLabel}>Change</Text>
+                <Text style={styles.waterAddMiniText}>+250</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => addWater(500)}
+                style={styles.waterAddMiniBtn}
+              >
+                <Text style={styles.waterAddMiniText}>+500</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.weightStatBox}>
-              <Text style={styles.weightStatValue}>
-                {formatWeight(targetWeight, settings.weightUnit)}
-              </Text>
-              <Text style={styles.weightStatLabel}>Goal</Text>
-            </View>
-          </View>
-        </Card>
+          </Card>
 
-        {/* WEEKLY ACTIVITY OVERVIEW */}
+          {/* Body Weight Card */}
+          <Card
+            variant="default"
+            style={styles.metricCard}
+            onPress={() => router.push('/weight/log')}
+          >
+            <View style={styles.metricHeader}>
+              <Ionicons name="scale" size={18} color={Palette.purple} />
+              <Text style={styles.metricCardLabel}>Weight</Text>
+            </View>
+            <Text style={styles.metricValue}>
+              {formatWeight(profile.weightKg, settings.weightUnit)}
+            </Text>
+            <Text style={styles.metricSub}>
+              {weightDelta <= 0
+                ? 'Target Reached 🎉'
+                : `${weightDelta} kg to target`}
+            </Text>
+            <View style={styles.weightActionRow}>
+              <Text style={styles.logWeightText}>Tap to Log ➔</Text>
+            </View>
+          </Card>
+        </View>
+
+        {/* WEEKLY ACTIVITY */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Weekly Consistency</Text>
+        </View>
         <Card variant="default" style={styles.weeklyCard}>
-          <View style={styles.weeklyHeader}>
-            <Text style={styles.weeklyTitle}>Weekly Consistency</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/progress')}
-              style={styles.detailsLink}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.detailsLinkText}>Analytics</Text>
-              <Ionicons name="chevron-forward" size={14} color={Palette.primary} />
-            </TouchableOpacity>
-          </View>
-          <BarChart
-            data={weeklyData}
-            height={140}
-            unit="%"
-            barColor="rgba(0, 245, 155, 0.3)"
-            activeBarColor={Palette.primary}
-          />
+          <BarChart data={weeklyData} height={120} />
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -400,224 +339,216 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.bgApp,
   },
   scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
     paddingBottom: Spacing.xxxl,
   },
-  profileAvatarBtn: {
-    padding: 2,
+  avatarBtn: {
+    padding: Spacing.xxs,
   },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  quickActionCard: {
-    flex: 1,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  quickActionIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  quickActionTitle: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.caption,
-    fontWeight: Typography.fontWeights.bold,
-    textAlign: 'center',
-  },
-  macroDashboardCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  macroCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  heroEnergyCard: {
     marginBottom: Spacing.md,
+    padding: Spacing.md,
   },
-  sectionHeading: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.title3,
-    fontWeight: Typography.fontWeights.bold,
-  },
-  sectionSubheading: {
-    color: Palette.textMuted,
-    fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
-  },
-  detailsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  detailsLinkText: {
-    color: Palette.primary,
-    fontSize: Typography.fontSizes.subhead,
-    fontWeight: Typography.fontWeights.semibold,
-  },
-  macroDashboardBody: {
+  macroRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.md,
   },
-  macroBarsColumn: {
+  macroDetailsCol: {
     flex: 1,
+    marginLeft: Spacing.md,
+    gap: 8,
+  },
+  macroItem: {},
+  macroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+    marginBottom: 1,
   },
-  workoutSpotlightCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+  macroDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
-  spotlightHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  spotlightTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  spotlightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 0, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotlightCategory: {
-    color: Palette.orange,
-    fontSize: Typography.fontSizes.micro,
-    fontWeight: Typography.fontWeights.heavy,
-    letterSpacing: 0.8,
-  },
-  spotlightRoutineName: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.bold,
-  },
-  completedWorkoutSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: Palette.bgCardElevated,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    marginTop: Spacing.xs,
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
-  summaryValue: {
-    color: Palette.primary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.bold,
-  },
-  summaryLabel: {
-    color: Palette.textMuted,
-    fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
-  },
-  suggestedRoutineInfo: {
-    marginTop: Spacing.xs,
-  },
-  suggestedDesc: {
+  macroName: {
     color: Palette.textSecondary,
-    fontSize: Typography.fontSizes.subhead,
-    lineHeight: 18,
-    marginBottom: Spacing.sm,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.medium,
   },
-  routineMetaPills: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: Spacing.md,
-  },
-  startWorkoutBtn: {
-    marginTop: Spacing.xs,
-  },
-  weightCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  weightHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  weightCardTitle: {
+  macroValue: {
     color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.title3,
+    fontSize: Typography.fontSizes.subhead,
     fontWeight: Typography.fontWeights.bold,
   },
-  weightCardSubtitle: {
+  macroTarget: {
     color: Palette.textMuted,
     fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
+    fontWeight: Typography.fontWeights.regular,
   },
-  logWeightBtn: {
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  quickChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: Palette.bgCardElevated,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: Palette.borderSubtle,
     gap: 4,
   },
-  logWeightBtnText: {
-    color: Palette.primary,
+  quickChipText: {
+    color: Palette.textPrimary,
     fontSize: Typography.fontSizes.caption,
     fontWeight: Typography.fontWeights.bold,
   },
-  weightStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: Palette.bgCardElevated,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-  },
-  weightStatBox: {
-    alignItems: 'center',
-  },
-  weightStatValue: {
-    color: Palette.textPrimary,
-    fontSize: Typography.fontSizes.body,
-    fontWeight: Typography.fontWeights.heavy,
-  },
-  weightStatLabel: {
-    color: Palette.textMuted,
-    fontSize: Typography.fontSizes.caption,
-    marginTop: 2,
-  },
-  weeklyCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-  },
-  weeklyHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+    marginTop: Spacing.xs,
   },
-  weeklyTitle: {
+  sectionTitle: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.body,
+    fontWeight: Typography.fontWeights.bold,
+    letterSpacing: -0.3,
+  },
+  sectionLink: {
+    color: Palette.primary,
+    fontSize: Typography.fontSizes.subhead,
+    fontWeight: Typography.fontWeights.semibold,
+  },
+  suggestedWorkoutCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+  },
+  suggestedTopRow: {
+    marginBottom: Spacing.xs,
+  },
+  suggestedLeft: {
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  suggestedTitle: {
     color: Palette.textPrimary,
     fontSize: Typography.fontSizes.title3,
     fontWeight: Typography.fontWeights.bold,
+    marginTop: 4,
+  },
+  suggestedSub: {
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.caption,
+  },
+  workoutCompletedCard: {
+    marginBottom: Spacing.md,
+    padding: Spacing.md,
+  },
+  workoutCompletedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  checkCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Palette.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  workoutCompletedInfo: {
+    flex: 1,
+  },
+  workoutDoneTitle: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.body,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  workoutDoneSub: {
+    color: Palette.primary,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.semibold,
+    marginTop: 2,
+  },
+  emptyWorkoutCard: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  emptyWorkoutText: {
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.subhead,
+  },
+  twoColGrid: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  metricCard: {
+    flex: 1,
+    padding: Spacing.md,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  metricCardLabel: {
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.semibold,
+  },
+  metricValue: {
+    color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.title3,
+    fontWeight: Typography.fontWeights.black,
+    marginTop: 2,
+  },
+  metricSub: {
+    color: Palette.textMuted,
+    fontSize: Typography.fontSizes.caption,
+    marginTop: 2,
+  },
+  waterBtnRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  waterAddMiniBtn: {
+    flex: 1,
+    backgroundColor: Palette.bgCardElevated,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Palette.borderSubtle,
+  },
+  waterAddMiniText: {
+    color: Palette.blue,
+    fontSize: Typography.fontSizes.micro,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  weightActionRow: {
+    marginTop: Spacing.sm,
+  },
+  logWeightText: {
+    color: Palette.purple,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.bold,
+  },
+  weeklyCard: {
+    marginBottom: Spacing.xl,
+    padding: Spacing.md,
   },
 });

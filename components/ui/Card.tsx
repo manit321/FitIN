@@ -1,10 +1,10 @@
+import React from 'react';
 import {
   View,
   StyleSheet,
   ViewStyle,
   StyleProp,
   TouchableOpacity,
-  TouchableOpacityProps,
 } from 'react-native';
 import { Palette } from '../../constants/colors';
 import { BorderRadius, Spacing, Shadows } from '../../constants/theme';
@@ -36,14 +36,14 @@ export const Card: React.FC<CardProps> = ({
         return styles.dangerCard;
       case 'default':
       default:
-        return [styles.defaultCard, Shadows.card];
+        return [styles.defaultCard, Shadows.subtle];
     }
   };
 
   if (onPress) {
     return (
       <TouchableOpacity
-        activeOpacity={0.82}
+        activeOpacity={0.78}
         onPress={onPress}
         disabled={disabled}
         style={[styles.baseCard, getVariantStyles(), style]}
@@ -63,7 +63,7 @@ export const Card: React.FC<CardProps> = ({
 const styles = StyleSheet.create({
   baseCard: {
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderWidth: 1,
   },
   defaultCard: {
@@ -76,10 +76,10 @@ const styles = StyleSheet.create({
   },
   highlightCard: {
     backgroundColor: Palette.bgCardElevated,
-    borderColor: 'rgba(0, 245, 155, 0.4)',
+    borderColor: 'rgba(0, 245, 155, 0.35)',
   },
   glassCard: {
-    backgroundColor: 'rgba(17, 23, 38, 0.75)',
+    backgroundColor: 'rgba(17, 21, 32, 0.85)',
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   dangerCard: {

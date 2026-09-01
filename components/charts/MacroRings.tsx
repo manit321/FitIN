@@ -1,132 +1,124 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, G } from 'react-native-svg';
 import { Palette } from '../../constants/colors';
 import { Typography, Spacing } from '../../constants/theme';
 
 interface MacroRingsProps {
+  calories: { current: number; target: number };
+  protein: { current: number; target: number };
+  carbs: { current: number; target: number };
+  fat: { current: number; target: number };
   size?: number;
-  consumedCalories: number;
-  targetCalories: number;
-  proteinG: number;
-  targetProteinG: number;
-  carbsG: number;
-  targetCarbsG: number;
-  fatG: number;
-  targetFatG: number;
 }
 
 export const MacroRings: React.FC<MacroRingsProps> = ({
+  calories,
+  protein,
+  carbs,
+  fat,
   size = 180,
-  consumedCalories,
-  targetCalories,
-  proteinG,
-  targetProteinG,
-  carbsG,
-  targetCarbsG,
-  fatG,
-  targetFatG,
 }) => {
-  const center = size / 2;
   const strokeWidth = 10;
-  const gap = 4;
+  const gap = 3;
+  const center = size / 2;
 
-  const rProtein = center - strokeWidth / 2 - 2;
-  const rCarbs = rProtein - strokeWidth - gap;
-  const rFat = rCarbs - strokeWidth - gap;
+  // Ring 1: Calories (Outer)
+  const rCal = center - strokeWidth / 2 - 2;
+  const circCal = 2 * Math.PI * rCal;
+  const pctCal = Math.min(1, Math.max(0, calories.current / (calories.target || 1)));
+  const strokeDashoffsetCal = circCal * (1 - pctCal);
 
-  const getRingParams = (current: number, target: number, radius: number) => {
-    const p = target > 0 ? Math.min(1, Math.max(0, current / target)) : 0;
-    const circ = 2 * Math.PI * radius;
-    const offset = circ - p * circ;
-    return { circumference: circ, offset };
-  };
+  // Ring 2: Protein (Middle)
+  const rProt = rCal - strokeWidth - gap;
+  const circProt = 2 * Math.PI * rProt;
+  const pctProt = Math.min(1, Math.max(0, protein.current / (protein.target || 1)));
+  const strokeDashoffsetProt = circProt * (1 - pctProt);
 
-  const proteinParams = getRingParams(proteinG, targetProteinG, rProtein);
-  const carbsParams = getRingParams(carbsG, targetCarbsG, rCarbs);
-  const fatParams = getRingParams(fatG, targetFatG, rFat);
+  // Ring 3: Carbs (Inner-Middle)
+  const rCarb = rProt - strokeWidth - gap;
+  const circCarb = 2 * Math.PI * rCarb;
+  const pctCarb = Math.min(1, Math.max(0, carbs.current / (carbs.target || 1)));
+  const strokeDashoffsetCarb = circCarb * (1 - pctCarb);
 
-  const remainingCalories = Math.max(0, targetCalories - consumedCalories);
+  const remainingCals = Math.max(0, calories.target - calories.current);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <Svg width={size} height={size} style={styles.svg}>
-        {/* Background Tracks */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={rProtein}
-          stroke={Palette.bgInput}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <Circle
-          cx={center}
-          cy={center}
-          r={rCarbs}
-          stroke={Palette.bgInput}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <Circle
-          cx={center}
-          cy={center}
-          r={rFat}
-          stroke={Palette.bgInput}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
+      <Svg width={size} height={size}>
+        <G rotation="-90" origin={`${center}, ${center}`}>
+          {/* Background Track 1 (Calories) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rCal}
+            stroke="rgba(255, 107, 0, 0.12)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          {/* Active Ring 1 (Calories) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rCal}
+            stroke={Palette.calories}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circCal}
+            strokeDashoffset={strokeDashoffsetCal}
+            strokeLinecap="round"
+            fill="none"
+          />
 
-        {/* Protein Ring (Outer - Green) */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={rProtein}
-          stroke={Palette.protein}
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${proteinParams.circumference} ${proteinParams.circumference}`}
-          strokeDashoffset={proteinParams.offset}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
+          {/* Background Track 2 (Protein) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rProt}
+            stroke="rgba(0, 245, 155, 0.12)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          {/* Active Ring 2 (Protein) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rProt}
+            stroke={Palette.protein}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circProt}
+            strokeDashoffset={strokeDashoffsetProt}
+            strokeLinecap="round"
+            fill="none"
+          />
 
-        {/* Carbs Ring (Middle - Cyan) */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={rCarbs}
-          stroke={Palette.carbs}
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${carbsParams.circumference} ${carbsParams.circumference}`}
-          strokeDashoffset={carbsParams.offset}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-
-        {/* Fat Ring (Inner - Amber) */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={rFat}
-          stroke={Palette.fat}
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${fatParams.circumference} ${fatParams.circumference}`}
-          strokeDashoffset={fatParams.offset}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
+          {/* Background Track 3 (Carbs) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rCarb}
+            stroke="rgba(0, 210, 255, 0.12)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          {/* Active Ring 3 (Carbs) */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={rCarb}
+            stroke={Palette.carbs}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circCarb}
+            strokeDashoffset={strokeDashoffsetCarb}
+            strokeLinecap="round"
+            fill="none"
+          />
+        </G>
       </Svg>
 
-      {/* Center Calorie Stats */}
-      <View style={styles.centerContent}>
-        <Text style={styles.remainingVal}>{remainingCalories}</Text>
+      {/* Center Calorie Display */}
+      <View style={styles.centerTextContainer}>
+        <Text style={styles.remainingVal}>{remainingCals}</Text>
         <Text style={styles.remainingLabel}>KCAL LEFT</Text>
-        <Text style={styles.consumedSub}>
-          {Math.round(consumedCalories)} / {targetCalories}
-        </Text>
       </View>
     </View>
   );
@@ -136,31 +128,24 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  svg: {
+  centerTextContainer: {
     position: 'absolute',
-  },
-  centerContent: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   remainingVal: {
-    fontSize: Typography.fontSizes.title1,
-    fontWeight: Typography.fontWeights.black,
     color: Palette.textPrimary,
+    fontSize: Typography.fontSizes.title2,
+    fontWeight: Typography.fontWeights.black,
     letterSpacing: -0.5,
   },
   remainingLabel: {
+    color: Palette.textMuted,
     fontSize: Typography.fontSizes.micro,
     fontWeight: Typography.fontWeights.heavy,
-    color: Palette.primary,
     letterSpacing: 0.8,
-    marginTop: -2,
-  },
-  consumedSub: {
-    fontSize: Typography.fontSizes.caption,
-    color: Palette.textMuted,
-    marginTop: 2,
-    fontWeight: Typography.fontWeights.medium,
+    marginTop: 1,
   },
 });

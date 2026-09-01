@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ViewStyle,
-} from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '../../constants/colors';
 import { Spacing, Typography, BorderRadius } from '../../constants/theme';
@@ -15,7 +9,6 @@ interface AppHeaderProps {
   subtitle?: string;
   streakDays?: number;
   rightAction?: React.ReactNode;
-  onStreakPress?: () => void;
   style?: ViewStyle;
 }
 
@@ -24,26 +17,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   subtitle,
   streakDays,
   rightAction,
-  onStreakPress,
   style,
 }) => {
   return (
-    <View style={[styles.headerContainer, style]}>
-      <View style={styles.titleColumn}>
+    <View style={[styles.container, style]}>
+      <View style={styles.leftCol}>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         <Text style={styles.title}>{title}</Text>
       </View>
 
-      <View style={styles.rightGroup}>
-        {streakDays !== undefined && (
-          <TouchableOpacity
-            style={styles.streakBadge}
-            onPress={onStreakPress}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="flame" size={18} color={Palette.orange} />
+      <View style={styles.rightRow}>
+        {typeof streakDays === 'number' && streakDays > 0 && (
+          <View style={styles.streakBadge}>
+            <Ionicons name="flame" size={16} color={Palette.orange} />
             <Text style={styles.streakText}>{streakDays}d</Text>
-          </TouchableOpacity>
+          </View>
         )}
         {rightAction}
       </View>
@@ -52,32 +40,30 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
+  container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  titleColumn: {
+  leftCol: {
     flex: 1,
   },
   subtitle: {
-    fontSize: Typography.fontSizes.subhead,
-    color: Palette.primary,
-    fontWeight: Typography.fontWeights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    color: Palette.textSecondary,
+    fontSize: Typography.fontSizes.caption,
+    fontWeight: Typography.fontWeights.semibold,
+    letterSpacing: 0.2,
     marginBottom: 2,
   },
   title: {
+    color: Palette.textPrimary,
     fontSize: Typography.fontSizes.title1,
     fontWeight: Typography.fontWeights.heavy,
-    color: Palette.textPrimary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
-  rightGroup: {
+  rightRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
@@ -86,16 +72,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 107, 0, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 0, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 0, 0.25)',
     gap: 4,
   },
   streakText: {
     color: Palette.orange,
-    fontSize: Typography.fontSizes.subhead,
+    fontSize: Typography.fontSizes.caption,
     fontWeight: Typography.fontWeights.heavy,
   },
 });
