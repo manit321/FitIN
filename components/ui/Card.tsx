@@ -1,8 +1,8 @@
-import React from 'react';
 import {
   View,
   StyleSheet,
   ViewStyle,
+  StyleProp,
   TouchableOpacity,
   TouchableOpacityProps,
 } from 'react-native';
@@ -11,7 +11,7 @@ import { BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'elevated' | 'highlight' | 'glass' | 'danger';
   onPress?: () => void;
   disabled?: boolean;
