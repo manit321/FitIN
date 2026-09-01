@@ -1,6 +1,6 @@
 # APEXFIT — Unified Workout & Nutrition Tracker 🚀
 
-APEXFIT is a native iOS fitness application built with **React Native**, **Expo SDK 54**, **Expo Router**, **TypeScript**, and **Supabase**.
+APEXFIT is a native iOS & Android fitness application built with **React Native**, **Expo SDK 57**, **Expo Router**, **TypeScript**, and **Supabase**.
 
 Inspired by Apple Health, Whoop, and modern athletic interfaces, APEXFIT combines progressive overload workout logging, Mifflin-St Jeor metabolic tracking, global food searching, and an interactive AI fitness coach into a single cohesive experience.
 
@@ -8,8 +8,8 @@ Inspired by Apple Health, Whoop, and modern athletic interfaces, APEXFIT combine
 
 ## 📱 Tech Stack & Architecture
 
-- **Framework**: Expo SDK 54 (`expo@~54.0.37`, `react-native@0.81.5`)
-- **Routing**: Expo Router `~6.0.24` (File-system routing with protected layout guards)
+- **Framework**: Expo SDK 57 (`expo@~57.0.18`, `react-native@0.86.3`)
+- **Routing**: Expo Router `~57.0.17` (File-system routing with protected layout guards)
 - **Backend & Auth**: Supabase Auth + PostgreSQL with Row Level Security (RLS)
 - **State Management**: Reactive Context (`AuthContext`, `FitnessContext`) + Local Cache (`AsyncStorage`)
 - **Typography & Theme**: iOS San Francisco scale + Obsidian & Electric Jade design tokens
@@ -78,4 +78,4 @@ Copy and execute [`supabase/migrations/20260901_initial_schema.sql`](supabase/mi
 ## 🧪 Testing & Verification
 
 - **TypeScript Compilation**: `npx tsc --noEmit` (0 errors)
-- **Expo SDK 54 Compliance**: `npx expo-doctor` (18/18 checks passed)
+- **Expo SDK 57 Compliance**: `npx expo-doctor` (21/21 checks passed)
