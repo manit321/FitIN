@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -74,6 +75,28 @@ export default function ProfileScreen() {
         },
       ]
     );
+  };
+
+  const handleLogout = () => {
+    const executeSignOut = async () => {
+      await signOut();
+      router.replace('/(auth)/login');
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to log out of APEXFIT?')) {
+        executeSignOut();
+      }
+    } else {
+      Alert.alert('Log Out', 'Are you sure you want to log out of APEXFIT?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: executeSignOut,
+        },
+      ]);
+    }
   };
 
   const goalLabels: Record<FitnessGoal, string> = {
@@ -252,19 +275,7 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
 
           <TouchableOpacity
-            onPress={() => {
-              Alert.alert('Log Out', 'Are you sure you want to log out of APEXFIT?', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Log Out',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await signOut();
-                    router.replace('/(auth)/login');
-                  },
-                },
-              ]);
-            }}
+            onPress={handleLogout}
             style={styles.settingRow}
           >
             <View style={styles.settingLeft}>
