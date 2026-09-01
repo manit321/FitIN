@@ -24,6 +24,8 @@ import {
   PRBrokenEvent,
 } from '../types';
 import { StorageService } from '../storage/storage';
+import { SupabaseService } from '../services/supabaseService';
+import { isSupabaseConfigured } from '../lib/supabase';
 import {
   SEED_USER_PROFILE,
   SEED_APP_SETTINGS,
@@ -38,7 +40,6 @@ import {
 import {
   calculate1RM,
   calculateNutritionTargets,
-  calculateSetsVolume,
 } from '../utils/calculations';
 
 interface RestTimerState {
@@ -108,6 +109,7 @@ interface FitnessContextType {
   deleteWeightEntry: (entryId: string) => Promise<void>;
   deleteCompletedWorkout: (workoutId: string) => Promise<void>;
   resetAllData: () => Promise<void>;
+  syncWithCloud: () => Promise<void>;
 }
 
 const FitnessContext = createContext<FitnessContextType | null>(null);
@@ -141,10 +143,71 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
     exerciseName: undefined,
   });
 
-  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const activeWorkoutTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeWorkoutTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load from AsyncStorage on mount
+  // Sync from Supabase
+  const syncWithCloud = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const [
+        remoteProfile,
+        remoteExercises,
+        remoteRoutines,
+        remoteWorkouts,
+        remoteFoods,
+        remoteMeals,
+        remoteWater,
+        remoteWeights,
+      ] = await Promise.all([
+        SupabaseService.fetchProfile(profile.id),
+        SupabaseService.fetchExercises(),
+        SupabaseService.fetchRoutines(profile.id),
+        SupabaseService.fetchCompletedWorkouts(profile.id),
+        SupabaseService.fetchFoods(profile.id),
+        SupabaseService.fetchLoggedMeals(profile.id),
+        SupabaseService.fetchWaterLogs(profile.id),
+        SupabaseService.fetchWeightEntries(profile.id),
+      ]);
+
+      if (remoteProfile) {
+        setProfile(remoteProfile);
+        StorageService.saveProfile(remoteProfile);
+      }
+      if (remoteExercises && remoteExercises.length > 0) {
+        setExercises(remoteExercises);
+        StorageService.saveExercises(remoteExercises);
+      }
+      if (remoteRoutines && remoteRoutines.length > 0) {
+        setRoutines(remoteRoutines);
+        StorageService.saveRoutines(remoteRoutines);
+      }
+      if (remoteWorkouts) {
+        setCompletedWorkouts(remoteWorkouts);
+        StorageService.saveCompletedWorkouts(remoteWorkouts);
+      }
+      if (remoteFoods && remoteFoods.length > 0) {
+        setFoods(remoteFoods);
+        StorageService.saveFoods(remoteFoods);
+      }
+      if (remoteMeals) {
+        setLoggedMeals(remoteMeals);
+        StorageService.saveLoggedMeals(remoteMeals);
+      }
+      if (remoteWater) {
+        setWaterLogs(remoteWater);
+        StorageService.saveWaterLogs(remoteWater);
+      }
+      if (remoteWeights) {
+        setWeightEntries(remoteWeights);
+        StorageService.saveWeightEntries(remoteWeights);
+      }
+    } catch (err) {
+      console.warn('Cloud sync error:', err);
+    }
+  }, [profile.id]);
+
+  // Load from AsyncStorage on mount and then try cloud sync
   useEffect(() => {
     async function loadData() {
       const data = await StorageService.loadInitialData();
@@ -159,9 +222,14 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       setWeightEntries(data.weightEntries);
       setActiveWorkout(data.activeWorkout);
       setIsHydrated(true);
+
+      // Background cloud sync
+      if (isSupabaseConfigured()) {
+        syncWithCloud();
+      }
     }
     loadData();
-  }, []);
+  }, [syncWithCloud]);
 
   // Active workout live stopwatch
   useEffect(() => {
@@ -246,7 +314,6 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       setProfile((prev) => {
         let updated = { ...prev, ...updates };
 
-        // If biometric fields changed and manual override is off, recalculate nutrition targets
         if (
           !updated.isManualMacroOverride &&
           (updates.weightKg ||
@@ -268,6 +335,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         StorageService.saveProfile(updated);
+        SupabaseService.upsertProfile(updated);
         return updated;
       });
       triggerHaptic('success');
@@ -299,6 +367,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [exercise, ...exercises];
       setExercises(updated);
       await StorageService.saveExercises(updated);
+      SupabaseService.upsertExercise(exercise);
       triggerHaptic('success');
       return exercise;
     },
@@ -318,11 +387,12 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
           updated = [routine, ...prev];
         }
         StorageService.saveRoutines(updated);
+        SupabaseService.upsertRoutine(routine, profile.id);
         return updated;
       });
       triggerHaptic('success');
     },
-    [triggerHaptic]
+    [profile.id, triggerHaptic]
   );
 
   // Delete routine
@@ -331,6 +401,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       setRoutines((prev) => {
         const updated = prev.filter((r) => r.id !== routineId);
         StorageService.saveRoutines(updated);
+        SupabaseService.deleteRoutine(routineId);
         return updated;
       });
       triggerHaptic('warning');
@@ -473,7 +544,6 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (newStatus) {
           triggerHaptic('success');
-          // Auto start rest timer if enabled
           if (settings.restTimerAutoStart && ex.targetRestSeconds > 0) {
             setRestTimer({
               isActive: true,
@@ -612,7 +682,6 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
             totalSets += 1;
             totalReps += s.reps;
 
-            // Check for PR
             const current1RM = calculate1RM(s.weightKg, s.reps);
             const exIndex = updatedExercises.findIndex((e) => e.id === ae.exercise.id);
             if (exIndex >= 0) {
@@ -657,7 +726,6 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       });
 
-      // Rough estimated calories: 6.5 kcal / min of lifting
       const minutes = Math.max(1, Math.round(activeWorkout.elapsedTimeSeconds / 60));
       const caloriesBurned = Math.round(minutes * 6.8);
 
@@ -681,14 +749,14 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updatedHistory = [completed, ...completedWorkouts];
       setCompletedWorkouts(updatedHistory);
       await StorageService.saveCompletedWorkouts(updatedHistory);
+      SupabaseService.upsertCompletedWorkout(completed, profile.id);
 
-      // Update exercise PR records in state & storage
       if (prsBroken.length > 0) {
         setExercises(updatedExercises);
         await StorageService.saveExercises(updatedExercises);
+        updatedExercises.forEach((ex) => SupabaseService.upsertExercise(ex));
       }
 
-      // Update routine timesCompleted & lastPerformedDate
       if (activeWorkout.routineId) {
         setRoutines((prev) => {
           const rIndex = prev.findIndex((r) => r.id === activeWorkout.routineId);
@@ -701,13 +769,13 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
               lastPerformedDate: dateStr,
             };
             StorageService.saveRoutines(updatedRoutines);
+            SupabaseService.upsertRoutine(updatedRoutines[rIndex], profile.id);
             return updatedRoutines;
           }
           return prev;
         });
       }
 
-      // Clear active workout & rest timer
       setActiveWorkout(null);
       await StorageService.saveActiveWorkout(null);
       setRestTimer({ isActive: false, targetSeconds: 90, remainingSeconds: 0 });
@@ -715,7 +783,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       triggerHaptic('success');
       return completed;
     },
-    [activeWorkout, completedWorkouts, exercises, triggerHaptic]
+    [activeWorkout, completedWorkouts, exercises, profile.id, triggerHaptic]
   );
 
   // Cancel active workout
@@ -779,9 +847,10 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [newLog, ...loggedMeals];
       setLoggedMeals(updated);
       await StorageService.saveLoggedMeals(updated);
+      SupabaseService.upsertLoggedMeal(newLog, profile.id);
       triggerHaptic('success');
     },
-    [loggedMeals, triggerHaptic]
+    [loggedMeals, profile.id, triggerHaptic]
   );
 
   // Delete logged food item
@@ -790,6 +859,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = loggedMeals.filter((m) => m.id !== loggedId);
       setLoggedMeals(updated);
       await StorageService.saveLoggedMeals(updated);
+      SupabaseService.deleteLoggedMeal(loggedId);
       triggerHaptic('warning');
     },
     [loggedMeals, triggerHaptic]
@@ -806,10 +876,11 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [item, ...foods];
       setFoods(updated);
       await StorageService.saveFoods(updated);
+      SupabaseService.upsertFood(item, profile.id);
       triggerHaptic('success');
       return item;
     },
-    [foods, triggerHaptic]
+    [foods, profile.id, triggerHaptic]
   );
 
   // Add water
@@ -825,9 +896,10 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [newWater, ...waterLogs];
       setWaterLogs(updated);
       await StorageService.saveWaterLogs(updated);
+      SupabaseService.upsertWaterLog(newWater, profile.id);
       triggerHaptic('impact');
     },
-    [waterLogs, triggerHaptic]
+    [profile.id, waterLogs, triggerHaptic]
   );
 
   // Set exact total water for a day
@@ -844,9 +916,10 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [newWater, ...filtered];
       setWaterLogs(updated);
       await StorageService.saveWaterLogs(updated);
+      SupabaseService.upsertWaterLog(newWater, profile.id);
       triggerHaptic('impact');
     },
-    [waterLogs, triggerHaptic]
+    [profile.id, waterLogs, triggerHaptic]
   );
 
   // Log body weight
@@ -865,17 +938,18 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = [newEntry, ...filtered].sort((a, b) => (a.date < b.date ? -1 : 1));
       setWeightEntries(updated);
       await StorageService.saveWeightEntries(updated);
+      SupabaseService.upsertWeightEntry(newEntry, profile.id);
 
-      // Update current weight in profile too
       setProfile((prev) => {
         const u = { ...prev, weightKg };
         StorageService.saveProfile(u);
+        SupabaseService.upsertProfile(u);
         return u;
       });
 
       triggerHaptic('success');
     },
-    [weightEntries, triggerHaptic]
+    [profile.id, weightEntries, triggerHaptic]
   );
 
   // Delete weight entry
@@ -884,6 +958,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = weightEntries.filter((w) => w.id !== entryId);
       setWeightEntries(updated);
       await StorageService.saveWeightEntries(updated);
+      SupabaseService.deleteWeightEntry(entryId);
       triggerHaptic('warning');
     },
     [weightEntries, triggerHaptic]
@@ -895,6 +970,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
       const updated = completedWorkouts.filter((w) => w.id !== workoutId);
       setCompletedWorkouts(updated);
       await StorageService.saveCompletedWorkouts(updated);
+      SupabaseService.deleteCompletedWorkout(workoutId);
       triggerHaptic('warning');
     },
     [completedWorkouts, triggerHaptic]
@@ -957,6 +1033,7 @@ export const FitnessProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteWeightEntry,
         deleteCompletedWorkout,
         resetAllData,
+        syncWithCloud,
       }}
     >
       {children}
